@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+const apiURL = process.env.REACT_APP_API_URL || 'http://backend:8000/api/users/register/';
+
 const Register = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -12,7 +14,7 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:8000/api/users/register/', {
+            await axios.post(apiURL, { // Use the apiURL variable here
                 email,
                 password,
                 first_name: firstName,
