@@ -83,7 +83,7 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
+AUTH_USER_MODEL = 'users.CustomUser'
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 LANGUAGE_CODE = 'en-us'
@@ -113,3 +113,13 @@ REST_FRAMEWORK = {
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.CustomUser'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'finance_manager'), 
+        'USER': os.getenv('POSTGRES_USER', 'postgres'),       
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'password'),
+        'HOST': 'db',                                         
+    }
+}

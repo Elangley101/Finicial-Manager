@@ -1,10 +1,21 @@
 version: '3'
 services:
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: finance_manager
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+
   backend:
     build:
       context: ./finance_manager
       dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:8000
+    command: >
+      sh -c "python manage.py migrate && 
+             python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./finance_manager:/app
     ports:
@@ -20,15 +31,6 @@ services:
       - ./frontend:/app
     ports:
       - "3000:3000"
-
-  db:
-    image: postgres:13
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: finance_manager
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
 
 volumes:
   postgres_data:
