@@ -1,36 +1,45 @@
+// frontend/src/context/AuthContext.js
+
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [authTokens, setAuthTokens] = useState(() => localStorage.getItem('authTokens') ? JSON.parse(localStorage.getItem('authTokens')) : null);
-    const [user, setUser] = useState(() => localStorage.getItem('authTokens') ? JSON.parse(atob(localStorage.getItem('authTokens').split('.')[1])) : null);
+    const [user, setUser] = useState(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        // Check if user data is in localStorage or other storage method
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            setUser(JSON.parse(storedUser));
+        }
+    }, []);
 
     const loginUser = async (email, password) => {
-        const response = await axios.post('http://localhost:8000/api/users/login/', { email, password });
-        if (response.status === 200) {
-            setAuthTokens(response.data);
-            setUser(JSON.parse(atob(response.data.access.split('.')[1])));
-            localStorage.setItem('authTokens', JSON.stringify(response.data));
+        try {
+            const response = await axios.post('http://localhost:8000/api/token/', {
+                email,
+                password,
+            });
+            setUser(response.data);
+            localStorage.setItem('user', JSON.stringify(response.data)); // Persist user data
+            navigate('/dashboard');
+        } catch (error) {
+            console.error('Login failed', error);
         }
     };
 
     const logoutUser = () => {
-        setAuthTokens(null);
         setUser(null);
-        localStorage.removeItem('authTokens');
-    };
-
-    const contextData = {
-        user,
-        authTokens,
-        loginUser,
-        logoutUser,
+        localStorage.removeItem('user');
+        navigate('/');
     };
 
     return (
-        <AuthContext.Provider value={contextData}>
+        <AuthContext.Provider value={{ user, loginUser, logoutUser }}>
             {children}
         </AuthContext.Provider>
     );
