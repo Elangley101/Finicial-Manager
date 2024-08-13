@@ -1,0 +1,29 @@
+.budget-management {
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.budget-overview, .create-budget, .budget-progress, .budget-analysis {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.budget-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.progress-bar {
+    background-color: #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 20px;
+}
+
+.progress {
+    height: 100%;
+}
