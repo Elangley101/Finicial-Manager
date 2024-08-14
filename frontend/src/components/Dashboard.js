@@ -8,6 +8,7 @@ import AccountSummary from './AccountSummary';
 import RecentTransactions from './RecentTransactions';
 import ExpenseIncomeChart from './ExpenseIncomeChart';
 import GoalsOverview from './GoalsOverview';
+import AIChatbot from './AIChatBot';
 
 const Dashboard = () => {
     return (
@@ -27,6 +28,9 @@ const Dashboard = () => {
                     </Grid>
                     <Grid item xs={12} md={6} lg={4}>
                         <GoalsOverview />
+                    </Grid>
+                    <Grid item xs={12} md={6} lg={4}>
+                        <AIChatbot />
                     </Grid>
                 </Grid>
             </Box>

@@ -27,6 +27,9 @@ const App = () => {
                 <Route path="/referral-rewards" element={<ReferralRewardsPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
                 {/* Add a default route or a 404 page if needed */}
             </Routes>
         </Router>

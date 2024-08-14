@@ -1,6 +1,6 @@
 import React from 'react';
 import './css/InvestmentPortfolio.css';
-
+import { Box, Grid, Paper, Typography } from '@mui/material';
 // Mock Data (Replace with real data from props or state)
 const investments = [
     {
@@ -30,6 +30,7 @@ const InvestmentPortfolio = () => {
     const totalValue = investments.reduce((acc, investment) => acc + investment.value, 0);
 
     return (
+        <Box sx={{ display: 'flex' }}>
         <div className="investment-portfolio">
             <h2>Investment Portfolio</h2>
             <div className="portfolio-summary">
@@ -47,6 +48,7 @@ const InvestmentPortfolio = () => {
                 ))}
             </div>
         </div>
+    </Box>
     );
 };
 
