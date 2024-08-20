@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from django.http import JsonResponse
 
 
 class CustomUserManager(BaseUserManager):
@@ -52,3 +53,42 @@ class FinancialData(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.account_name}"
+class CategoryListView(View):
+    def get(self, request):
+        categories = Category.objects.all().values('id', 'name')
+        return JsonResponse(list(categories), safe=False)
+    
+class Category(models.Model):
+    TRANSACTION_TYPE_CHOICES = [
+        ('income', 'Income'),
+        ('expense', 'Expense'),
+    ]
+
+    CATEGORY_CHOICES = [
+        ('groceries', 'Groceries'),
+        ('rent', 'Rent'),
+        ('salary', 'Salary'),
+        ('entertainment', 'Entertainment'),
+        ('utilities', 'Utilities'),
+        ('transportation', 'Transportation'),
+        ('dining', 'Dining'),
+        ('healthcare', 'Healthcare'),
+        ('insurance', 'Insurance'),
+        ('savings', 'Savings'),
+        ('investments', 'Investments'),
+        ('debt_payment', 'Debt Payment'),
+        ('charity', 'Charity'),
+        ('education', 'Education'),
+        ('personal_care', 'Personal Care'),
+        ('other', 'Other'),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    date = models.DateField()
+    description = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    type = models.CharField(max_length=7, choices=TRANSACTION_TYPE_CHOICES)
+
+    def __str__(self):
+        return f"{self.description} - {self.amount} ({self.type})"

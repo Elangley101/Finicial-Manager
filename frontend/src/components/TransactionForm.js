@@ -1,5 +1,3 @@
-// src/components/TransactionForm.js
-
 import React, { useState } from 'react';
 import { Box, Button, TextField, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import axios from 'axios';
@@ -11,6 +9,26 @@ const TransactionForm = () => {
     const [category, setCategory] = useState('');
     const [type, setType] = useState('expense');
 
+    // Hardcoded categories that match the model's CATEGORY_CHOICES
+    const categories = [
+        { value: 'groceries', label: 'Groceries' },
+        { value: 'rent', label: 'Rent' },
+        { value: 'salary', label: 'Salary' },
+        { value: 'entertainment', label: 'Entertainment' },
+        { value: 'utilities', label: 'Utilities' },
+        { value: 'transportation', label: 'Transportation' },
+        { value: 'dining', label: 'Dining' },
+        { value: 'healthcare', label: 'Healthcare' },
+        { value: 'insurance', label: 'Insurance' },
+        { value: 'savings', label: 'Savings' },
+        { value: 'investments', label: 'Investments' },
+        { value: 'debt_payment', label: 'Debt Payment' },
+        { value: 'charity', label: 'Charity' },
+        { value: 'education', label: 'Education' },
+        { value: 'personal_care', label: 'Personal Care' },
+        { value: 'other', label: 'Other' },
+    ];
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -21,7 +39,12 @@ const TransactionForm = () => {
                 category,
                 type,
             });
-            // Handle success (e.g., reset form or display a message)
+            // Reset form or display success message
+            setDate('');
+            setDescription('');
+            setAmount('');
+            setCategory('');
+            setType('expense');
         } catch (error) {
             console.error('Error adding transaction:', error);
         }
@@ -63,10 +86,11 @@ const TransactionForm = () => {
                     onChange={(e) => setCategory(e.target.value)}
                     required
                 >
-                    <MenuItem value="Groceries">Groceries</MenuItem>
-                    <MenuItem value="Rent">Rent</MenuItem>
-                    <MenuItem value="Salary">Salary</MenuItem>
-                    {/* Add more categories as needed */}
+                    {categories.map((cat) => (
+                        <MenuItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                        </MenuItem>
+                    ))}
                 </Select>
             </FormControl>
             <FormControl fullWidth sx={{ mb: 2 }}>

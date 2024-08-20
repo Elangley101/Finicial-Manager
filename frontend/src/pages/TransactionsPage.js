@@ -1,18 +1,30 @@
 import React from 'react';
-import Sidebar from '../components/Sidebar';
-import RecentTransactions from '../components/RecentTransactions';
+import { Container, Typography, Box } from '@mui/material';
 import TransactionForm from '../components/TransactionForm';
+import CSVUpload from '../components/CSVUpload';
+import Sidebar from '../components/Sidebar';  // Import your Sidebar component
 
-const TransactionsPage = () => {
+const TransactionPage = () => {
     return (
-        <div style={{ display: 'flex' }}>
+        <Box sx={{ display: 'flex' }}>
+            {/* Sidebar */}
             <Sidebar />
-            <div style={{ flexGrow: 1, padding: '16px' }} className="transactions-page">
-                <RecentTransactions />
+            {/* Main Content */}
+            <Container sx={{ flexGrow: 1 }}>
+                <Typography variant="h4" component="h1" gutterBottom>
+                    Manage Transactions
+                </Typography>
+                {/* Transaction Form */}
                 <TransactionForm />
-            </div>
-        </div>
+                {/* Separator or heading */}
+                <Typography variant="h6" component="h2" gutterBottom>
+                    Or Upload Transactions via CSV
+                </Typography>
+                {/* CSV Upload Form */}
+                <CSVUpload />
+            </Container>
+        </Box>
     );
 };
 
-export default TransactionsPage;
+export default TransactionPage;
