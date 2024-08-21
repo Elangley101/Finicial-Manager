@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { getCookie } from '../utils';
+
+const csrftoken = getCookie('csrftoken');
 
 const apiURL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users/register/';
 
@@ -14,13 +17,27 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post(apiURL, { // Use the apiURL variable here
-                email,
-                password,
-                first_name: firstName,
-                last_name: lastName
-            });
-            navigate('/login');
+            const response = await axios.post(
+                apiURL,
+                {
+                    email,
+                    password,
+                    first_name: firstName,
+                    last_name: lastName,
+                },
+                {
+                    headers: {
+                        'X-CSRFToken': csrftoken, 
+                    },
+                }
+            );
+    
+            const token = response.data.access_token;
+            if (token) {
+                localStorage.setItem('token', token);  
+            }
+    
+            navigate('/dashboard');
         } catch (error) {
             console.error(error);
         }

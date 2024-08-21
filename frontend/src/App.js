@@ -11,11 +11,13 @@ import ReportsPage from './pages/ReportsPage';
 import ReferralRewardsPage from './pages/ReferralRewardsPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import LandingPage from './pages/LandingPage';
 
 const App = () => {
     return (
         <Router>
             <Routes>
+                <Route exact path="/" element={<LandingPage />} /> 
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/budget" element={<BudgetPage />} />
                 <Route path="/goals" element={<GoalsPage />} />

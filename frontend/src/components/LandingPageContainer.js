@@ -3,7 +3,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const LandingPage = () => {
+const LandingPageContainer = () => {
     return (
         <div style={{ textAlign: 'center', marginTop: '50px' }}>
             <h1>Welcome to Financial Manager</h1>
@@ -12,7 +12,7 @@ const LandingPage = () => {
                 <Link to="/login">
                     <button style={{ marginRight: '20px' }}>Login</button>
                 </Link>
-                <Link to="/register">
+                <Link to="/signup">
                     <button>Register</button>
                 </Link>
             </div>
@@ -20,4 +20,4 @@ const LandingPage = () => {
     );
 };
 
-export default LandingPage;
+export default LandingPageContainer;

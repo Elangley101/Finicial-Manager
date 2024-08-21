@@ -21,7 +21,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'finance_manager',  
+    'finance_manager',
+    'corsheaders', 
 ]
 
 MIDDLEWARE = [
@@ -32,8 +33,21 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
-
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    # Add more origins if needed
+]
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
 ROOT_URLCONF = 'finance_manager.urls'
 
 TEMPLATES = [
@@ -60,7 +74,7 @@ import os
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.db.backends.mysql',  # Ensure this is set to MySQL
         'NAME': os.getenv('DB_NAME', 'finance_manager'),
         'USER': os.getenv('DB_USER', 'mysql_user'),
         'PASSWORD': os.getenv('DB_PASSWORD', 'mysql_password'),
@@ -114,12 +128,3 @@ REST_FRAMEWORK = {
     ),
 }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'finance_manager'), 
-        'USER': os.getenv('POSTGRES_USER', 'postgres'),       
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'password'),
-        'HOST': 'db',                                         
-    }
-}

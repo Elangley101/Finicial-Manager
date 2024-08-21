@@ -14,11 +14,37 @@ from .models import Transaction
 from django.contrib.auth.models import User
 import json
 import csv
+from django.contrib.auth.hashers import make_password
+from django.views.decorators.csrf import csrf_exempt
 
-class UserRegisterView(generics.CreateAPIView):
-    queryset = CustomUser.objects.all()
-    permission_classes = (AllowAny,)
-    serializer_class = UserSerializer
+class UserRegisterView(View):
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            email = data['email']
+            password = data['password']
+            first_name = data.get('first_name', '')
+            last_name = data.get('last_name', '')
+
+            # Check if the email already exists
+            if User.objects.filter(email=email).exists():
+                return JsonResponse({"error": "Email already exists"}, status=400)
+
+            # Create a new user
+            user = User.objects.create(
+                username=email,  # Use email as the username
+                email=email,
+                password=make_password(password),  # Hash the password before saving
+                first_name=first_name,
+                last_name=last_name
+            )
+
+            return JsonResponse({"message": "User registered successfully"}, status=201)
+
+        except KeyError as e:
+            return JsonResponse({"error": f"Missing field: {str(e)}"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
 
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
@@ -113,3 +139,5 @@ class CSVUploadView(View):
             )
 
         return JsonResponse({"message": "CSV uploaded and processed successfully"})
+    
+

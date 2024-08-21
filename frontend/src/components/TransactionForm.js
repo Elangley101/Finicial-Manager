@@ -32,7 +32,7 @@ const TransactionForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('/api/transactions/', {
+            await axios.post('http://localhost:8000/api/transactions/', {
                 date,
                 description,
                 amount,

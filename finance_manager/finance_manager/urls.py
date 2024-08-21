@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import UserRegisterView,UserProfileView,AccountBalanceView,RecentTransactionsView,ExpenseIncomeOverviewView,TransactionCreateView,CategoryListView,CSVUploadView
+from .views import UserRegisterView,UserProfileView,AccountBalanceView,RecentTransactionsView,TransactionCreateView,CSVUploadView
 
 urlpatterns = [
     path('register/', UserRegisterView.as_view(), name='register'),
@@ -10,8 +10,8 @@ urlpatterns = [
     path('api/users/profile/', UserProfileView.as_view(), name='user_profile'),
     path('api/accounts/', AccountBalanceView.as_view(), name='account_balance'),
     path('api/transactions/recent/', RecentTransactionsView.as_view(), name='recent_transactions'),
-    path('api/overview/', ExpenseIncomeOverviewView.as_view(), name='expense_income_overview'),
-    path('api/categories/', CategoryListView.as_view(), name='category-list'),
+    #path('api/overview/', ExpenseIncomeOverviewView.as_view(), name='expense_income_overview'),
+    #path('api/categories/', CategoryListView.as_view(), name='category-list'),
     path('api/transactions/', TransactionCreateView.as_view(), name='transaction-create'),
     path('api/upload-csv/', CSVUploadView.as_view(), name='upload-csv'),
 ]
