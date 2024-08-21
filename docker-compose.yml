@@ -1,13 +1,16 @@
 version: '3'
 services:
   db:
-    image: postgres:13
+    image: mysql:5.7
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     environment:
-      POSTGRES_DB: finance_manager
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      MYSQL_DATABASE: finance_manager
+      MYSQL_USER: mysql_user
+      MYSQL_PASSWORD: mysql_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
 
   backend:
     build:
@@ -22,6 +25,12 @@ services:
       - "8000:8000"
     depends_on:
       - db
+    environment:
+      - DB_NAME=finance_manager
+      - DB_USER=mysql_user
+      - DB_PASSWORD=mysql_password
+      - DB_HOST=db
+      - DB_PORT=3306
 
   frontend:
     build:
@@ -33,4 +42,4 @@ services:
       - "3000:3000"
 
 volumes:
-  postgres_data:
+  mysql_data:

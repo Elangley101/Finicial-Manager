@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.http import JsonResponse
 from django.views import View
 from django.utils import timezone
-from .models import Transaction, Category
+from .models import Transaction
 from django.contrib.auth.models import User
 import json
 import csv
@@ -40,7 +40,7 @@ class AccountBalanceView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        accounts = FinancialData.objects.filter(user=request.user)
+        accounts = Transaction.objects.filter(user=request.user)
         data = [{"account_name": account.account_name, "balance": account.balance} for account in accounts]
         return Response(data)
     
@@ -61,7 +61,7 @@ class TransactionCreateView(View):
         user = request.user  # or get the user from the user_id if sent via frontend
 
         # Retrieve or create the category based on the provided category name
-        category, created = Category.objects.get_or_create(name=data['category'])
+        category, created = Transaction.objects.get_or_create(name=data['category'])
 
         # Create the transaction
         transaction = Transaction.objects.create(
@@ -100,7 +100,7 @@ class CSVUploadView(View):
 
         for row in reader:
             # Retrieve or create the category based on the provided category name
-            category, created = Category.objects.get_or_create(name=row['Category'])
+            category, created = Transaction.objects.get_or_create(name=row['Category'])
 
             # Create a new transaction entry
             Transaction.objects.create(

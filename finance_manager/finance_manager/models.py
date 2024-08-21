@@ -53,12 +53,9 @@ class FinancialData(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.account_name}"
-class CategoryListView(View):
-    def get(self, request):
-        categories = Category.objects.all().values('id', 'name')
-        return JsonResponse(list(categories), safe=False)
+
     
-class Category(models.Model):
+class Transaction(models.Model):
     TRANSACTION_TYPE_CHOICES = [
         ('income', 'Income'),
         ('expense', 'Expense'),
