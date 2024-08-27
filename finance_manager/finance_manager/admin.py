@@ -1,3 +1,8 @@
 from django.contrib import admin
+from .models import CustomUser, FinancialData, Transaction, UserProfile, AccountSettings
 
-# Register your models here.
+admin.site.register(CustomUser)
+admin.site.register(FinancialData)
+admin.site.register(Transaction)
+admin.site.register(UserProfile)
+admin.site.register(AccountSettings)

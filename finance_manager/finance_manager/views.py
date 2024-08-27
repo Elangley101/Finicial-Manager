@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from .models import CustomUser
-from .serializers import UserSerializer
+from .serializers import UserSerializer,UserProfileSerializer, AccountSettingsSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -16,7 +16,11 @@ import json
 import csv
 from django.contrib.auth.hashers import make_password
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import generics, permissions
+from .models import UserProfile, AccountSettings
+from django.contrib.auth import get_user_model
 
+@csrf_exempt
 class UserRegisterView(View):
     def post(self, request):
         try:
@@ -27,11 +31,11 @@ class UserRegisterView(View):
             last_name = data.get('last_name', '')
 
             # Check if the email already exists
-            if User.objects.filter(email=email).exists():
+            if CustomUser.objects.filter(email=email).exists():
                 return JsonResponse({"error": "Email already exists"}, status=400)
 
             # Create a new user
-            user = User.objects.create(
+            user = CustomUser.objects.create(
                 username=email,  # Use email as the username
                 email=email,
                 password=make_password(password),  # Hash the password before saving
@@ -54,13 +58,15 @@ class UserProfileView(APIView):
         serializer = UserSerializer(user)
         return Response(serializer.data)
     
-class UserProfileView(APIView):
-    permission_classes = [IsAuthenticated]
+User = get_user_model()
 
-    def get(self, request):
-        user = request.user
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
     
 class AccountBalanceView(APIView):
     permission_classes = [IsAuthenticated]
@@ -140,4 +146,33 @@ class CSVUploadView(View):
 
         return JsonResponse({"message": "CSV uploaded and processed successfully"})
     
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
+    def get_object(self):
+        return self.request.user
+
+class AccountSettingsView(generics.RetrieveUpdateAPIView):
+    queryset = AccountSettings.objects.all()
+    serializer_class = AccountSettingsSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user.accountsettings
+
+class PasswordResetView(generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def update(self, request, *args, **kwargs):
+        user = request.user
+        old_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+
+        if not user.check_password(old_password):
+            return Response({"error": "Wrong current password."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+        return Response({"success": "Password updated successfully."})

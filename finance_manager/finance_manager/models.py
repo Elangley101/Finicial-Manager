@@ -89,3 +89,18 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.description} - {self.amount} ({self.type})"
+class UserProfile(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    phone = models.CharField(max_length=15, blank=True, null=True)
+    # Add any other fields you want to store
+
+    def __str__(self):
+        return self.user.username
+
+class AccountSettings(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    email_notifications = models.BooleanField(default=False)
+    # Add any other settings-related fields
+
+    def __str__(self):
+        return f"Settings for {self.user.username}"

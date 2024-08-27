@@ -1,52 +1,70 @@
 import React, { useState } from 'react';
-import { Box, Button, TextField, Typography } from '@mui/material';
+import axios from 'axios';
+import { TextField, Button } from '@mui/material';
 
 const PasswordReset = () => {
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwords, setPasswords] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+    });
 
-    const handlePasswordReset = () => {
-        // Add logic to handle password reset
-        console.log('Password reset requested');
+    const handleChange = (e) => {
+        setPasswords({ ...passwords, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (passwords.newPassword !== passwords.confirmPassword) {
+            console.error('New passwords do not match');
+            return;
+        }
+
+        axios.post('/api/user/password-reset/', {
+            current_password: passwords.currentPassword,
+            new_password: passwords.newPassword,
+        })
+            .then((response) => {
+                console.log('Password reset successful:', response.data);
+            })
+            .catch((error) => {
+                console.error('Error resetting password:', error);
+            });
     };
 
     return (
-        <Box>
-            <Typography variant="h6" gutterBottom>Password Reset</Typography>
+        <form onSubmit={handleSubmit}>
             <TextField
+                name="currentPassword"
                 label="Current Password"
                 type="password"
+                value={passwords.currentPassword}
+                onChange={handleChange}
                 fullWidth
                 margin="normal"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
             />
             <TextField
+                name="newPassword"
                 label="New Password"
                 type="password"
+                value={passwords.newPassword}
+                onChange={handleChange}
                 fullWidth
                 margin="normal"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
             />
             <TextField
+                name="confirmPassword"
                 label="Confirm New Password"
                 type="password"
+                value={passwords.confirmPassword}
+                onChange={handleChange}
                 fullWidth
                 margin="normal"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
             />
-            <Button
-                variant="contained"
-                color="primary"
-                onClick={handlePasswordReset}
-                style={{ marginTop: '16px' }}
-            >
+            <Button type="submit" variant="contained" color="primary">
                 Reset Password
             </Button>
-        </Box>
+        </form>
     );
 };
 

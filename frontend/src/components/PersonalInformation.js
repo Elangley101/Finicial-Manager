@@ -1,51 +1,86 @@
-import React, { useState } from 'react';
-import { Box, Button, TextField, Typography } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { TextField, Button, CircularProgress } from '@mui/material';
 
 const PersonalInformation = () => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
+    const [personalInfo, setPersonalInfo] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+    });
+    const [loading, setLoading] = useState(true);
 
-    const handleSave = () => {
-        // Add logic to save personal information
-        console.log('Personal information saved');
+    useEffect(() => {
+        // Fetch user personal information
+        axios.get('/api/user/personal-information/')
+            .then((response) => {
+                setPersonalInfo(response.data);
+                setLoading(false);
+            })
+            .catch((error) => {
+                console.error('Error fetching personal information:', error);
+                setLoading(false);
+            });
+    }, []);
+
+    const handleChange = (e) => {
+        setPersonalInfo({ ...personalInfo, [e.target.name]: e.target.value });
     };
 
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        axios.put('/api/user/personal-information/', personalInfo)
+            .then((response) => {
+                console.log('Personal information updated:', response.data);
+            })
+            .catch((error) => {
+                console.error('Error updating personal information:', error);
+            });
+    };
+
+    if (loading) {
+        return <CircularProgress />;
+    }
+
     return (
-        <Box>
-            <Typography variant="h6" gutterBottom>Personal Information</Typography>
+        <form onSubmit={handleSubmit}>
             <TextField
-                label="Name"
+                name="firstName"
+                label="First Name"
+                value={personalInfo.firstName}
+                onChange={handleChange}
                 fullWidth
                 margin="normal"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
             />
             <TextField
+                name="lastName"
+                label="Last Name"
+                value={personalInfo.lastName}
+                onChange={handleChange}
+                fullWidth
+                margin="normal"
+            />
+            <TextField
+                name="email"
                 label="Email"
-                type="email"
+                value={personalInfo.email}
+                onChange={handleChange}
                 fullWidth
                 margin="normal"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
             />
             <TextField
+                name="phone"
                 label="Phone"
-                type="tel"
+                value={personalInfo.phone}
+                onChange={handleChange}
                 fullWidth
                 margin="normal"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
             />
-            <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSave}
-                style={{ marginTop: '16px' }}
-            >
-                Save
+            <Button type="submit" variant="contained" color="primary">
+                Save Changes
             </Button>
-        </Box>
+        </form>
     );
 };
 
