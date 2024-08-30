@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-from .models import CustomUser,UserProfile,AccountSettings
+from .models import CustomUser,UserProfile,AccountSettings,Transaction,Goal
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
@@ -53,3 +53,14 @@ class UserSerializer(serializers.ModelSerializer):
         settings.save()
 
         return instance
+class TransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaction
+        fields = ['id', 'user', 'description', 'amount', 'date', 'transaction_type']
+        read_only_fields = ['user']  # The user field will be automatically set in the view
+
+
+class GoalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Goal
+        fields = ['id', 'name', 'target_amount', 'current_amount', 'target_date']

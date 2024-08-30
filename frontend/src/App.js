@@ -12,6 +12,8 @@ import ReferralRewardsPage from './pages/ReferralRewardsPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import LandingPage from './pages/LandingPage';
+import AccountsPage from './pages/AccountsPage'; // If it's in the 'pages' folder
+
 
 const App = () => {
     return (
@@ -29,9 +31,7 @@ const App = () => {
                 <Route path="/referral-rewards" element={<ReferralRewardsPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/accounts" element={<AccountsPage />} /> {/* Add the Accounts route */}
                 {/* Add a default route or a 404 page if needed */}
             </Routes>
         </Router>

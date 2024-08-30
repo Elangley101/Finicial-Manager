@@ -1,7 +1,7 @@
 version: '3'
 services:
   db:
-    image: mysql:5.7
+    image: mysql:8.0  # Use MySQL 8.0
     volumes:
       - mysql_data:/var/lib/mysql
     environment:
@@ -17,10 +17,10 @@ services:
       context: ./finance_manager
       dockerfile: Dockerfile
     command: >
-      sh -c "python manage.py migrate && 
+      sh -c "python manage.py migrate &&
              python manage.py runserver 0.0.0.0:8000"
     volumes:
-      - ./finance_manager:/app
+      - ./finance_manager:/app  # Mount the backend source code for live editing
     ports:
       - "8000:8000"
     depends_on:
@@ -37,7 +37,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     volumes:
-      - ./frontend:/app
+      - ./frontend:/app  # Mount the frontend source code for live editing
+      # Remove node_modules mount to avoid conflicts
     ports:
       - "3000:3000"
 

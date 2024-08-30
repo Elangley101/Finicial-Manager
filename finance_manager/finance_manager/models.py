@@ -3,7 +3,9 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.http import JsonResponse
-
+from rest_framework import generics, permissions
+from .models import Transaction
+from .serializers import TransactionSerializer
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -97,10 +99,30 @@ class UserProfile(models.Model):
     def __str__(self):
         return self.user.username
 
-class AccountSettings(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    email_notifications = models.BooleanField(default=False)
-    # Add any other settings-related fields
+
+class AccountSummary(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    total_balance = models.DecimalField(max_digits=10, decimal_places=2)
+    last_updated = models.DateTimeField(auto_now=True)
+
+class Transaction(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    description = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateTimeField()
+    transaction_type = models.CharField(max_length=50)  # e.g., '
+class TransactionCreateView(generics.CreateAPIView):
+    serializer_class = TransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+class Goal(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    target_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    current_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    target_date = models.DateField()
 
     def __str__(self):
-        return f"Settings for {self.user.username}"
+        return self.name

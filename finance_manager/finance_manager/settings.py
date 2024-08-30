@@ -78,7 +78,7 @@ DATABASES = {
         'NAME': os.getenv('DB_NAME', 'finance_manager'),
         'USER': os.getenv('DB_USER', 'mysql_user'),
         'PASSWORD': os.getenv('DB_PASSWORD', 'mysql_password'),
-        'HOST': os.getenv('DB_HOST', 'db'),
+        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
         'PORT': os.getenv('DB_PORT', '3306'),
     }
 }

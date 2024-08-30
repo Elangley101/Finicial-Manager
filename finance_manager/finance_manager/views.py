@@ -1,8 +1,8 @@
 from django.shortcuts import render
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import AllowAny
-from .models import CustomUser
-from .serializers import UserSerializer,UserProfileSerializer, AccountSettingsSerializer
+from .models import CustomUser,Goal
+from .serializers import UserSerializer,UserProfileSerializer, AccountSettingsSerializer,GoalSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -19,8 +19,9 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, permissions
 from .models import UserProfile, AccountSettings
 from django.contrib.auth import get_user_model
+from django.utils.decorators import method_decorator
 
-@csrf_exempt
+@method_decorator(csrf_exempt, name='dispatch')
 class UserRegisterView(View):
     def post(self, request):
         try:
@@ -36,7 +37,6 @@ class UserRegisterView(View):
 
             # Create a new user
             user = CustomUser.objects.create(
-                username=email,  # Use email as the username
                 email=email,
                 password=make_password(password),  # Hash the password before saving
                 first_name=first_name,
@@ -117,26 +117,29 @@ class TransactionCreateView(View):
             }
         })
     
-class CSVUploadView(View):
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser
+from rest_framework.response import Response
+from rest_framework import status
+import csv
+
+class CSVUploadView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
     def post(self, request):
-        csv_file = request.FILES['file']
+        file = request.FILES.get('file')
+        if not file or not file.name.endswith('.csv'):
+            return Response({'error': 'Please upload a valid CSV file.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not csv_file.name.endswith('.csv'):
-            return JsonResponse({'error': 'File is not CSV'}, status=400)
-
-        # Decode the CSV file
-        decoded_file = csv_file.read().decode('utf-8').splitlines()
+        decoded_file = file.read().decode('utf-8').splitlines()
         reader = csv.DictReader(decoded_file)
 
-        user = request.user  # Replace with appropriate user logic
-
         for row in reader:
-            # Retrieve or create the category based on the provided category name
+            # Ensure category is properly managed and transaction is created
             category, created = Transaction.objects.get_or_create(name=row['Category'])
-
-            # Create a new transaction entry
             Transaction.objects.create(
-                user=user,
+                user=request.user,
                 date=row['Date'],
                 description=row['Description'],
                 amount=row['Amount'],
@@ -144,7 +147,8 @@ class CSVUploadView(View):
                 type=row['Type']
             )
 
-        return JsonResponse({"message": "CSV uploaded and processed successfully"})
+        return Response({"message": "CSV uploaded and processed successfully"}, status=status.HTTP_201_CREATED)
+
     
 class UserProfileView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
@@ -176,3 +180,31 @@ class PasswordResetView(generics.UpdateAPIView):
         user.set_password(new_password)
         user.save()
         return Response({"success": "Password updated successfully."})
+class TransactionSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        transactions = Transaction.objects.filter(user=request.user)
+        
+        summary = {}
+        for transaction in transactions:
+            month = transaction.date.strftime('%B')
+            if month not in summary:
+                summary[month] = {'Income': 0, 'Expenses': 0}
+            if transaction.transaction_type == 'income':
+                summary[month]['Income'] += transaction.amount
+            else:
+                summary[month]['Expenses'] += transaction.amount
+        
+        # Convert summary dict to list for the frontend
+        data = [{'name': month, **values} for month, values in summary.items()]
+        return JsonResponse(data, safe=False)
+    
+
+
+class GoalListView(generics.ListAPIView):
+    serializer_class = GoalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Goal.objects.filter(user=self.request.user)
