@@ -1,26 +1,22 @@
 from django.shortcuts import render
-from rest_framework import generics, status
-from rest_framework.permissions import AllowAny
-from .models import CustomUser,Goal
-from .serializers import UserSerializer,UserProfileSerializer, AccountSettingsSerializer,GoalSerializer
+from rest_framework import generics, status, permissions
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from django.http import JsonResponse
 from django.http import JsonResponse
 from django.views import View
-from django.utils import timezone
-from .models import Transaction
-from django.contrib.auth.models import User
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.hashers import make_password
+from rest_framework.parsers import MultiPartParser
 import json
 import csv
-from django.contrib.auth.hashers import make_password
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework import generics, permissions
-from .models import UserProfile, AccountSettings
+from rest_framework_simplejwt.tokens import RefreshToken
+from .models import CustomUser, Goal, Transaction, UserProfile, AccountSettings
+from .serializers import UserSerializer, UserProfileSerializer, AccountSettingsSerializer, GoalSerializer, TransactionSerializer
 from django.contrib.auth import get_user_model
-from django.utils.decorators import method_decorator
 
+# User Registration View
 @method_decorator(csrf_exempt, name='dispatch')
 class UserRegisterView(View):
     def post(self, request):
@@ -31,51 +27,49 @@ class UserRegisterView(View):
             first_name = data.get('first_name', '')
             last_name = data.get('last_name', '')
 
-            # Check if the email already exists
             if CustomUser.objects.filter(email=email).exists():
                 return JsonResponse({"error": "Email already exists"}, status=400)
 
-            # Create a new user
             user = CustomUser.objects.create(
                 email=email,
-                password=make_password(password),  # Hash the password before saving
+                password=make_password(password),
                 first_name=first_name,
                 last_name=last_name
             )
 
-            return JsonResponse({"message": "User registered successfully"}, status=201)
+            # Generate JWT tokens
+            refresh = RefreshToken.for_user(user)
+            tokens = {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }
+
+            return JsonResponse({"message": "User registered successfully", "tokens": tokens}, status=201)
 
         except KeyError as e:
             return JsonResponse({"error": f"Missing field: {str(e)}"}, status=400)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
-class UserProfileView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        user = request.user
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
-    
-User = get_user_model()
-
+# User Profile View
 class UserProfileView(generics.RetrieveUpdateAPIView):
-    queryset = User.objects.all()
+    queryset = get_user_model().objects.all()
     serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_object(self):
         return self.request.user
-    
+
+# Account Balance View
 class AccountBalanceView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         accounts = Transaction.objects.filter(user=request.user)
-        data = [{"account_name": account.account_name, "balance": account.balance} for account in accounts]
+        data = [{"account_name": account.description, "balance": account.amount} for account in accounts]
         return Response(data)
-    
+
+# Recent Transactions View
 class RecentTransactionsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -83,25 +77,21 @@ class RecentTransactionsView(APIView):
         transactions = Transaction.objects.filter(user=request.user).order_by('-date')[:10]
         data = [{"date": t.date, "description": t.description, "amount": t.amount, "category": t.category} for t in transactions]
         return Response(data)
-    
 
+# Transaction Create View
 class TransactionCreateView(View):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         data = json.loads(request.body)
-        
-        # Assuming the user is authenticated and you have user information
-        user = request.user  # or get the user from the user_id if sent via frontend
+        user = request.user
 
-        # Retrieve or create the category based on the provided category name
-        category, created = Transaction.objects.get_or_create(name=data['category'])
-
-        # Create the transaction
         transaction = Transaction.objects.create(
             user=user,
             date=data['date'],
             description=data['description'],
             amount=data['amount'],
-            category=category,
+            category=data['category'],
             type=data['type']
         )
         
@@ -112,19 +102,14 @@ class TransactionCreateView(View):
                 "date": transaction.date,
                 "description": transaction.description,
                 "amount": transaction.amount,
-                "category": transaction.category.name,
+                "category": transaction.category,
                 "type": transaction.type
             }
         })
-    
-from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser
-from rest_framework.response import Response
-from rest_framework import status
-import csv
 
+# CSV Upload View
 class CSVUploadView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
 
     def post(self, request):
@@ -136,38 +121,29 @@ class CSVUploadView(APIView):
         reader = csv.DictReader(decoded_file)
 
         for row in reader:
-            # Ensure category is properly managed and transaction is created
-            category, created = Transaction.objects.get_or_create(name=row['Category'])
             Transaction.objects.create(
                 user=request.user,
                 date=row['Date'],
                 description=row['Description'],
                 amount=row['Amount'],
-                category=category,
+                category=row['Category'],
                 type=row['Type']
             )
 
         return Response({"message": "CSV uploaded and processed successfully"}, status=status.HTTP_201_CREATED)
 
-    
-class UserProfileView(generics.RetrieveUpdateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_object(self):
-        return self.request.user
-
+# Account Settings View
 class AccountSettingsView(generics.RetrieveUpdateAPIView):
     queryset = AccountSettings.objects.all()
     serializer_class = AccountSettingsSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_object(self):
         return self.request.user.accountsettings
 
+# Password Reset View
 class PasswordResetView(generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def update(self, request, *args, **kwargs):
         user = request.user
@@ -180,6 +156,8 @@ class PasswordResetView(generics.UpdateAPIView):
         user.set_password(new_password)
         user.save()
         return Response({"success": "Password updated successfully."})
+
+# Transaction Summary View
 class TransactionSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -191,20 +169,58 @@ class TransactionSummaryView(APIView):
             month = transaction.date.strftime('%B')
             if month not in summary:
                 summary[month] = {'Income': 0, 'Expenses': 0}
-            if transaction.transaction_type == 'income':
+            if transaction.type == 'income':
                 summary[month]['Income'] += transaction.amount
             else:
                 summary[month]['Expenses'] += transaction.amount
         
-        # Convert summary dict to list for the frontend
         data = [{'name': month, **values} for month, values in summary.items()]
         return JsonResponse(data, safe=False)
-    
 
-
+# Goal List View
 class GoalListView(generics.ListAPIView):
     serializer_class = GoalSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Goal.objects.filter(user=self.request.user)
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+# View to handle User Profile additional details (like phone)
+class UserProfileDetailView(generics.RetrieveUpdateAPIView):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user.userprofile
+
+# View to handle Account Settings retrieval and update
+class AccountSettingsView(generics.RetrieveUpdateAPIView):
+    queryset = AccountSettings.objects.all()
+    serializer_class = AccountSettingsSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user.accountsettings
+
+class PasswordResetView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        old_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+
+        if not user.check_password(old_password):
+            return Response({"error": "Wrong current password."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+        return Response({"success": "Password updated successfully."})

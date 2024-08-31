@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { TextField, Button } from '@mui/material';
+import { TextField, Button, Typography } from '@mui/material';
 
 const PasswordReset = () => {
     const [passwords, setPasswords] = useState({
@@ -9,31 +9,44 @@ const PasswordReset = () => {
         confirmPassword: '',
     });
 
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+
     const handleChange = (e) => {
         setPasswords({ ...passwords, [e.target.name]: e.target.value });
+        setError(''); // Clear error when user starts typing
+        setSuccess(''); // Clear success message when user starts typing
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (passwords.newPassword !== passwords.confirmPassword) {
-            console.error('New passwords do not match');
+            setError('New passwords do not match');
             return;
         }
 
-        axios.post('/api/user/password-reset/', {
+        axios.post('http://localhost:8000/api/users/password-reset/', { // Updated URL with port 8000
             current_password: passwords.currentPassword,
             new_password: passwords.newPassword,
         })
             .then((response) => {
-                console.log('Password reset successful:', response.data);
+                setSuccess('Password reset successful');
+                setPasswords({
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: '',
+                });
             })
             .catch((error) => {
-                console.error('Error resetting password:', error);
+                setError('Error resetting password: ' + (error.response ? error.response.data.error : error.message));
             });
     };
 
     return (
         <form onSubmit={handleSubmit}>
+            <Typography variant="h6" gutterBottom>Reset Password</Typography>
+            {error && <Typography color="error">{error}</Typography>}
+            {success && <Typography color="primary">{success}</Typography>}
             <TextField
                 name="currentPassword"
                 label="Current Password"
@@ -42,6 +55,7 @@ const PasswordReset = () => {
                 onChange={handleChange}
                 fullWidth
                 margin="normal"
+                required
             />
             <TextField
                 name="newPassword"
@@ -51,6 +65,7 @@ const PasswordReset = () => {
                 onChange={handleChange}
                 fullWidth
                 margin="normal"
+                required
             />
             <TextField
                 name="confirmPassword"
@@ -60,6 +75,7 @@ const PasswordReset = () => {
                 onChange={handleChange}
                 fullWidth
                 margin="normal"
+                required
             />
             <Button type="submit" variant="contained" color="primary">
                 Reset Password

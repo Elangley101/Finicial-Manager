@@ -12,30 +12,29 @@ import ReferralRewardsPage from './pages/ReferralRewardsPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import LandingPage from './pages/LandingPage';
-import AccountsPage from './pages/AccountsPage'; // If it's in the 'pages' folder
-
+import AccountsPage from './pages/AccountsPage';
 
 const App = () => {
-    return (
-        <Router>
-            <Routes>
-                <Route exact path="/" element={<LandingPage />} /> 
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/budget" element={<BudgetPage />} />
-                <Route path="/goals" element={<GoalsPage />} />
-                <Route path="/investment" element={<InvestmentPage />} />
-                <Route path="/transactions" element={<TransactionsPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/referral-rewards" element={<ReferralRewardsPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                <Route path="/accounts" element={<AccountsPage />} /> {/* Add the Accounts route */}
-                {/* Add a default route or a 404 page if needed */}
-            </Routes>
-        </Router>
-    );
+  return (
+    <Router>  {/* Router should be at the root of your app */}
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/budget" element={<BudgetPage />} />
+        <Route path="/goals" element={<GoalsPage />} />
+        <Route path="/investment" element={<InvestmentPage />} />
+        <Route path="/transactions" element={<TransactionsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/referral-rewards" element={<ReferralRewardsPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/accounts" element={<AccountsPage />} />
+        {/* Add a default route or a 404 page if needed */}
+      </Routes>
+    </Router>
+  );
 };
 
 export default App;

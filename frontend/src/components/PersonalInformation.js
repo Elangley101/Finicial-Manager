@@ -1,84 +1,78 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { TextField, Button, CircularProgress } from '@mui/material';
+import { TextField, Button } from '@mui/material';
 
-const PersonalInformation = () => {
-    const [personalInfo, setPersonalInfo] = useState({
-        firstName: '',
-        lastName: '',
+const PersonalInformation = ({ userData }) => {
+    const [formData, setFormData] = useState({
+        first_name: '',
+        last_name: '',
         email: '',
-        phone: '',
     });
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Fetch user personal information
-        axios.get('/api/user/personal-information/')
-            .then((response) => {
-                setPersonalInfo(response.data);
-                setLoading(false);
-            })
-            .catch((error) => {
-                console.error('Error fetching personal information:', error);
-                setLoading(false);
+        if (userData) {
+            setFormData({
+                first_name: userData.first_name,
+                last_name: userData.last_name,
+                email: userData.email,
             });
-    }, []);
+        }
+    }, [userData]);
 
     const handleChange = (e) => {
-        setPersonalInfo({ ...personalInfo, [e.target.name]: e.target.value });
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value,
+        });
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        axios.put('/api/user/personal-information/', personalInfo)
-            .then((response) => {
-                console.log('Personal information updated:', response.data);
-            })
-            .catch((error) => {
-                console.error('Error updating personal information:', error);
-            });
+        // Send the updated user data to the API
+        fetch('/api/users/profile/', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`, // Include token for authentication
+            },
+            body: JSON.stringify(formData),
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Handle success (e.g., show a success message)
+            console.log('Profile updated:', data);
+        })
+        .catch(error => console.error('Error updating profile:', error));
     };
-
-    if (loading) {
-        return <CircularProgress />;
-    }
 
     return (
         <form onSubmit={handleSubmit}>
             <TextField
-                name="firstName"
                 label="First Name"
-                value={personalInfo.firstName}
+                name="first_name"
+                value={formData.first_name}
                 onChange={handleChange}
                 fullWidth
                 margin="normal"
             />
             <TextField
-                name="lastName"
                 label="Last Name"
-                value={personalInfo.lastName}
+                name="last_name"
+                value={formData.last_name}
                 onChange={handleChange}
                 fullWidth
                 margin="normal"
             />
             <TextField
-                name="email"
                 label="Email"
-                value={personalInfo.email}
+                name="email"
+                value={formData.email}
                 onChange={handleChange}
                 fullWidth
                 margin="normal"
-            />
-            <TextField
-                name="phone"
-                label="Phone"
-                value={personalInfo.phone}
-                onChange={handleChange}
-                fullWidth
-                margin="normal"
+                disabled // If you don't want the user to change their email
             />
             <Button type="submit" variant="contained" color="primary">
-                Save Changes
+                Update Information
             </Button>
         </form>
     );

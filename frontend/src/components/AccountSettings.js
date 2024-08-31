@@ -1,71 +1,73 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { TextField, Button, CircularProgress } from '@mui/material';
+import { TextField, Button } from '@mui/material';
 
-const AccountSettings = () => {
-    const [accountSettings, setAccountSettings] = useState({
-        username: '',
-        emailNotifications: false,
+const AccountSettings = ({ userData }) => {
+    const [settingsData, setSettingsData] = useState({
+        notify_transactions: true,
+        theme: 'light',
+        language: 'en',
     });
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Fetch user account settings
-        axios.get('/api/user/account-settings/')
-            .then((response) => {
-                setAccountSettings(response.data);
-                setLoading(false);
-            })
-            .catch((error) => {
-                console.error('Error fetching account settings:', error);
-                setLoading(false);
-            });
-    }, []);
+        if (userData && userData.account_settings) {
+            setSettingsData(userData.account_settings);
+        }
+    }, [userData]);
 
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setAccountSettings({
-            ...accountSettings,
-            [name]: type === 'checkbox' ? checked : value,
+        setSettingsData({
+            ...settingsData,
+            [e.target.name]: e.target.value,
         });
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        axios.put('/api/user/account-settings/', accountSettings)
-            .then((response) => {
-                console.log('Account settings updated:', response.data);
-            })
-            .catch((error) => {
-                console.error('Error updating account settings:', error);
-            });
+        // Send the updated settings to the API
+        fetch('/api/users/account-settings/', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`, // Include token for authentication
+            },
+            body: JSON.stringify(settingsData),
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Handle success (e.g., show a success message)
+            console.log('Account settings updated:', data);
+        })
+        .catch(error => console.error('Error updating account settings:', error));
     };
-
-    if (loading) {
-        return <CircularProgress />;
-    }
 
     return (
         <form onSubmit={handleSubmit}>
             <TextField
-                name="username"
-                label="Username"
-                value={accountSettings.username}
+                label="Notify Transactions"
+                name="notify_transactions"
+                value={settingsData.notify_transactions}
                 onChange={handleChange}
                 fullWidth
                 margin="normal"
             />
             <TextField
-                name="emailNotifications"
-                label="Email Notifications"
-                type="checkbox"
-                checked={accountSettings.emailNotifications}
+                label="Theme"
+                name="theme"
+                value={settingsData.theme}
+                onChange={handleChange}
+                fullWidth
+                margin="normal"
+            />
+            <TextField
+                label="Language"
+                name="language"
+                value={settingsData.language}
                 onChange={handleChange}
                 fullWidth
                 margin="normal"
             />
             <Button type="submit" variant="contained" color="primary">
-                Save Changes
+                Update Settings
             </Button>
         </form>
     );

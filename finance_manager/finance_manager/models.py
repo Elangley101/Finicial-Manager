@@ -2,10 +2,6 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
-from django.http import JsonResponse
-from rest_framework import generics, permissions
-from .models import Transaction
-from .serializers import TransactionSerializer
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -27,7 +23,14 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('Superuser must have is_superuser=True.')
 
         return self.create_user(email, password, **extra_fields)
+class AccountSettings(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    notify_transactions = models.BooleanField(default=True)
+    theme = models.CharField(max_length=20, default='light')  # Example field
+    language = models.CharField(max_length=10, default='en')  # Example field
 
+    def __str__(self):
+        return f"{self.user.email} - Settings"
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
@@ -47,6 +50,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
 class FinancialData(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     account_name = models.CharField(max_length=255)
@@ -56,7 +60,6 @@ class FinancialData(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.account_name}"
 
-    
 class Transaction(models.Model):
     TRANSACTION_TYPE_CHOICES = [
         ('income', 'Income'),
@@ -82,7 +85,7 @@ class Transaction(models.Model):
         ('other', 'Other'),
     ]
 
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     date = models.DateField()
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -91,34 +94,21 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.description} - {self.amount} ({self.type})"
+
 class UserProfile(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     phone = models.CharField(max_length=15, blank=True, null=True)
-    # Add any other fields you want to store
 
     def __str__(self):
-        return self.user.username
-
+        return self.user.email
 
 class AccountSummary(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     total_balance = models.DecimalField(max_digits=10, decimal_places=2)
     last_updated = models.DateTimeField(auto_now=True)
 
-class Transaction(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    description = models.CharField(max_length=255)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    date = models.DateTimeField()
-    transaction_type = models.CharField(max_length=50)  # e.g., '
-class TransactionCreateView(generics.CreateAPIView):
-    serializer_class = TransactionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 class Goal(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     target_amount = models.DecimalField(max_digits=10, decimal_places=2)
     current_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
