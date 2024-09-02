@@ -1,56 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
+import { Bar, Pie } from 'react-chartjs-2';
+import { Chart, registerables } from 'chart.js'; // Import Chart and registerables
 import axios from 'axios';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-} from 'recharts';
+import AuthContext from '../context/AuthContext';
 
+// Register all necessary Chart.js components
+Chart.register(...registerables);
 
 const ExpenseIncomeChart = () => {
-    const [data, setData] = useState([]);
-    const [error, setError] = useState(null);
+    const [chartData, setChartData] = useState(null);
+    const { authTokens } = useContext(AuthContext); // Access the authTokens from the context
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get('/api/transactions/summary/');
-                if (response.data) {
-                    setData(response.data);
-                } else {
-                    setError('No data available');
-                }
+                const response = await axios.get('http://localhost:8000/api/transaction-summary/', {
+                    headers: {
+                        'Authorization': `Bearer ${authTokens.access}`, // Include the access token in the request
+                    },
+                });
+                const { total_income, total_expense } = response.data;
+
+                // Initialize chart data
+                const data = {
+                    labels: ['Income', 'Expense'],
+                    datasets: [
+                        {
+                            label: 'Amount',
+                            data: [total_income || 0, total_expense || 0], // Ensure values are provided or default to 0
+                            backgroundColor: ['#4caf50', '#f44336'],
+                        },
+                    ],
+                };
+
+                setChartData(data);
             } catch (error) {
-                setError('Error fetching data');
-                console.error('Error fetching data:', error);
+                console.error('Error fetching transaction summary:', error);
             }
         };
 
         fetchData();
-    }, []);
+    }, [authTokens]); // Add authTokens as a dependency to re-fetch data when tokens change
 
-    if (error) {
-        return <div>{error}</div>;
-    }
-
-    if (!data.length) {
-        return <div>No data available.</div>;
+    if (!chartData) {
+        return <p>Loading chart data...</p>; // Loading state while data is being fetched
     }
 
     return (
-        <div className="expense-income-chart">
-            <h2>Income vs Expenses</h2>
-            <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={data}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="Income" fill="#82ca9d" />
-                    <Bar dataKey="Expenses" fill="#8884d8" />
-                </BarChart>
-            </ResponsiveContainer>
+        <div>
+            <h2>Income vs Expense</h2>
+            <Pie 
+                data={chartData} 
+                options={{ 
+                    responsive: true, 
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }} 
+            />
         </div>
     );
-}
+};
 
 export default ExpenseIncomeChart;

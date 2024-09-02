@@ -12,9 +12,19 @@ from rest_framework.parsers import MultiPartParser
 import json
 import csv
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import CustomUser, Goal, Transaction, UserProfile, AccountSettings
+from .models import CustomUser, Goal, Transaction, UserProfile, AccountSettings,Investment, Debt, Goal
 from .serializers import UserSerializer, UserProfileSerializer, AccountSettingsSerializer, GoalSerializer, TransactionSerializer
+from django.db import transaction as db_transaction
 from django.contrib.auth import get_user_model
+from datetime import datetime  
+from plaid import ApiClient, Configuration
+from rest_framework.decorators import api_view
+from plaid.api import plaid_api
+from plaid.model.country_code import CountryCode
+from plaid.model.link_token_create_request import LinkTokenCreateRequest
+from plaid.model.products import Products
+from plaid import ApiClient, Configuration
+from plaid import LinkTokenCreateRequestUser
 
 # User Registration View
 @method_decorator(csrf_exempt, name='dispatch')
@@ -79,11 +89,12 @@ class RecentTransactionsView(APIView):
         return Response(data)
 
 # Transaction Create View
-class TransactionCreateView(View):
+@method_decorator(csrf_exempt, name='dispatch')
+class TransactionCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        data = json.loads(request.body)
+        data = request.data
         user = request.user
 
         transaction = Transaction.objects.create(
@@ -95,7 +106,7 @@ class TransactionCreateView(View):
             type=data['type']
         )
         
-        return JsonResponse({
+        return Response({
             "message": "Transaction added successfully",
             "transaction": {
                 "id": transaction.id,
@@ -109,27 +120,69 @@ class TransactionCreateView(View):
 
 # CSV Upload View
 class CSVUploadView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser]
 
     def post(self, request):
         file = request.FILES.get('file')
         if not file or not file.name.endswith('.csv'):
+            print('No CSV file uploaded or incorrect file format.')
             return Response({'error': 'Please upload a valid CSV file.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        decoded_file = file.read().decode('utf-8').splitlines()
+        try:
+            decoded_file = file.read().decode('utf-8-sig').splitlines()
+            print(f"File successfully decoded. Number of lines: {len(decoded_file)}")
+        except UnicodeDecodeError:
+            try:
+                decoded_file = file.read().decode('ISO-8859-1').splitlines()
+                print(f"File successfully decoded with ISO-8859-1 encoding. Number of lines: {len(decoded_file)}")
+            except UnicodeDecodeError:
+                print('File could not be decoded. Unsupported encoding.')
+                return Response({'error': 'File could not be decoded. Please upload a valid CSV file.'}, status=status.HTTP_400_BAD_REQUEST)
+
         reader = csv.DictReader(decoded_file)
 
-        for row in reader:
-            Transaction.objects.create(
-                user=request.user,
-                date=row['Date'],
-                description=row['Description'],
-                amount=row['Amount'],
-                category=row['Category'],
-                type=row['Type']
-            )
+        expected_headers = ['Date', 'Description', 'Amount', 'Category', 'Type']
+        if reader.fieldnames != expected_headers:
+            print(f"Incorrect headers. Expected {expected_headers}, but got {reader.fieldnames}")
+            return Response({'error': f"Incorrect headers. Expected {expected_headers}, but got {reader.fieldnames}"}, status=status.HTTP_400_BAD_REQUEST)
 
+        transactions_created = 0
+
+        for row in reader:
+            try:
+                date_str = row['Date']
+                description = row['Description']
+                amount = row['Amount']
+                category = row['Category']
+                type = row['Type']
+
+                # Convert date to YYYY-MM-DD format
+                date = datetime.strptime(date_str, '%m/%d/%Y').strftime('%Y-%m-%d')
+
+                print(f"Date: {date}, Description: {description}, Amount: {amount}, Category: {category}, Type: {type}")
+                
+                transaction = Transaction.objects.create(
+                    user=request.user,
+                    date=date,
+                    description=description,
+                    amount=amount,
+                    category=category,
+                    type=type
+                )
+                transactions_created += 1
+                print(f"Created Transaction: {transaction}")
+            except KeyError as e:
+                print(f'Missing expected field in row: {row}. Error: {e}')
+                return Response({'error': f"Missing expected field in row: {row}. Error: {e}"}, status=status.HTTP_400_BAD_REQUEST)
+            except ValueError as e:
+                print(f'Error parsing date in row {row}: {e}')
+                return Response({'error': f'Error parsing date in row: {row}. Error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                print(f'Error creating transaction from row {row}: {e}')
+                return Response({'error': f'Failed to process row: {row}. Error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        print(f"Successfully created {transactions_created} transactions.")
         return Response({"message": "CSV uploaded and processed successfully"}, status=status.HTTP_201_CREATED)
 
 # Account Settings View
@@ -157,25 +210,7 @@ class PasswordResetView(generics.UpdateAPIView):
         user.save()
         return Response({"success": "Password updated successfully."})
 
-# Transaction Summary View
-class TransactionSummaryView(APIView):
-    permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        transactions = Transaction.objects.filter(user=request.user)
-        
-        summary = {}
-        for transaction in transactions:
-            month = transaction.date.strftime('%B')
-            if month not in summary:
-                summary[month] = {'Income': 0, 'Expenses': 0}
-            if transaction.type == 'income':
-                summary[month]['Income'] += transaction.amount
-            else:
-                summary[month]['Expenses'] += transaction.amount
-        
-        data = [{'name': month, **values} for month, values in summary.items()]
-        return JsonResponse(data, safe=False)
 
 # Goal List View
 class GoalListView(generics.ListAPIView):
@@ -224,3 +259,115 @@ class PasswordResetView(APIView):
         user.set_password(new_password)
         user.save()
         return Response({"success": "Password updated successfully."})
+    
+class TransactionSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Get all transactions for the logged-in user
+        transactions = Transaction.objects.filter(user=request.user)
+        
+        # Initialize totals
+        total_income = 0
+        total_expense = 0
+        
+        # Calculate the totals
+        for transaction in transactions:
+            if transaction.type == 'income':
+                total_income += transaction.amount
+            elif transaction.type == 'expense':
+                total_expense += transaction.amount
+        
+        # Return the summary data as JSON
+        data = {
+            'total_income': total_income,
+            'total_expense': total_expense
+        }
+        return Response(data)
+    
+class InvestmentPortfolioView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        investments = Investment.objects.filter(user=request.user)
+        portfolio = {
+            'growth': sum([inv.growth for inv in investments]),
+            'returns': sum([inv.value for inv in investments]),
+            'assets': [{'name': inv.name, 'value': inv.value} for inv in investments]
+        }
+        return Response(portfolio)
+
+class DebtAndLiabilitiesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        debts = Debt.objects.filter(user=request.user)
+        debt_data = [{'name': debt.name, 'balance': debt.balance, 'interestRate': debt.interest_rate} for debt in debts]
+        return Response(debt_data)
+
+class SavingsAndGoalsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        goals = Goal.objects.filter(user=request.user)
+        goals_data = [{'name': goal.name, 'targetAmount': goal.target_amount, 'savedAmount': goal.saved_amount} for goal in goals]
+        return Response(goals_data)
+configuration = Configuration(
+    host="https://sandbox.plaid.com",  
+    api_key={
+        'clientId': 'your-client-id',
+        'secret': 'your-secret'
+    }
+)
+
+# Initialize the Plaid API client
+api_client = ApiClient(configuration)
+client = plaid_api.PlaidApi(api_client)
+@api_view(['POST'])
+def create_link_token(request):
+    configuration = Configuration(
+        host="https://sandbox.plaid.com",  # Use the appropriate environment: sandbox, development, or production
+        api_key={
+            'clientId': os.getenv('PLAID_CLIENT_ID'),  # Use environment variables for security
+            'secret': os.getenv('PLAID_SECRET')  # Use environment variables for security
+        }
+    )
+
+api_client = ApiClient(configuration)
+client = plaid_api.PlaidApi(api_client)
+
+@api_view(['POST'])
+def create_link_token(request):
+    user = LinkTokenCreateRequestUser(client_user_id='unique-user-id')
+
+    request = LinkTokenCreateRequest(
+        user=user,
+        client_name="Finance_Manager",
+        products=['transactions'],
+        country_codes=['US'],
+        language='en',
+    )
+
+    try:
+        response = client.link_token_create(request)
+        return Response(response.to_dict())
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+    api_client = ApiClient(configuration)
+    client = plaid_api.PlaidApi(api_client)
+
+    user = LinkTokenCreateRequestUser(client_user_id='unique-user-id')
+
+    request = LinkTokenCreateRequest(
+        user=user,
+        client_name="Finance_Manager",
+        products=['transactions'],
+        country_codes=['US'],
+        language='en',
+    )
+
+    try:
+        response = client.link_token_create(request)
+        return Response(response.to_dict())
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)

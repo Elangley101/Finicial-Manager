@@ -1,42 +1,69 @@
-import React from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import Sidebar from '../components/Sidebar';
-import { Box } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import InvestmentPortfolioPerformance from '../components/InvestmentPortfolioPerformance';
 import DebtAndLiabilityReports from '../components/DebtAndLiabilityReports';
 import SavingsAndGoalsTracking from '../components/SavingsAndGoalsTracking';
-
-// Mock data for demonstration purposes
-const portfolio = {
-    growth: 12.5,
-    returns: 5000,
-    assets: [
-        { name: 'Stocks', value: 50000 },
-        { name: 'Bonds', value: 20000 },
-        { name: 'Real Estate', value: 15000 },
-        { name: 'Crypto', value: 10000 },
-    ],
-};
-
-const debts = [
-    { id: 1, name: 'Credit Card', balance: 3000, interestRate: 18.5 },
-    { id: 2, name: 'Student Loan', balance: 15000, interestRate: 4.5 },
-    { id: 3, name: 'Car Loan', balance: 7000, interestRate: 6.2 },
-];
-
-const goals = [
-    { id: 1, name: 'Emergency Fund', targetAmount: 10000, savedAmount: 6000 },
-    { id: 2, name: 'Vacation', targetAmount: 5000, savedAmount: 1500 },
-    { id: 3, name: 'New Car', targetAmount: 20000, savedAmount: 8000 },
-];
+import AuthContext from '../context/AuthContext';
+import axios from 'axios';
 
 const ReportsPage = () => {
+    const [portfolio, setPortfolio] = useState(null);
+    const [debts, setDebts] = useState(null);
+    const [goals, setGoals] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const { authTokens } = useContext(AuthContext);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const portfolioResponse = await axios.get('http://localhost:8000/api/portfolio/', {
+                    headers: {
+                        'Authorization': `Bearer ${authTokens.access}`
+                    }
+                });
+                const debtsResponse = await axios.get('http://localhost:8000/api/debts/', {
+                    headers: {
+                        'Authorization': `Bearer ${authTokens.access}`
+                    }
+                });
+                const goalsResponse = await axios.get('http://localhost:8000/api/goals/', {
+                    headers: {
+                        'Authorization': `Bearer ${authTokens.access}`
+                    }
+                });
+
+                setPortfolio(portfolioResponse.data);
+                setDebts(debtsResponse.data);
+                setGoals(goalsResponse.data);
+            } catch (error) {
+                console.error('Error fetching report data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [authTokens]);
+
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
+
     return (
         <div style={{ display: 'flex' }}>
             <Sidebar />
             <Box flexGrow={1} p={3} className="reports-page">
-                <InvestmentPortfolioPerformance portfolio={portfolio} />
-                <DebtAndLiabilityReports debts={debts} />
-                <SavingsAndGoalsTracking goals={goals} />
+                {portfolio && <InvestmentPortfolioPerformance portfolio={portfolio} />}
+                {debts && <DebtAndLiabilityReports debts={debts} />}
+                {goals && <SavingsAndGoalsTracking goals={goals} />}
+                {!portfolio && !debts && !goals && (
+                    <Typography variant="h6">No data available</Typography>
+                )}
             </Box>
         </div>
     );

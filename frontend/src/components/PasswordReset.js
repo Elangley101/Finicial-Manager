@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { TextField, Button, Typography } from '@mui/material';
+import AuthContext from '../context/AuthContext';  // Ensure you import AuthContext
 
 const PasswordReset = () => {
     const [passwords, setPasswords] = useState({
@@ -11,6 +12,7 @@ const PasswordReset = () => {
 
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const { authTokens } = useContext(AuthContext);  // Get the auth token from context
 
     const handleChange = (e) => {
         setPasswords({ ...passwords, [e.target.name]: e.target.value });
@@ -18,28 +20,36 @@ const PasswordReset = () => {
         setSuccess(''); // Clear success message when user starts typing
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (passwords.newPassword !== passwords.confirmPassword) {
             setError('New passwords do not match');
             return;
         }
 
-        axios.post('http://localhost:8000/api/users/password-reset/', { // Updated URL with port 8000
-            current_password: passwords.currentPassword,
-            new_password: passwords.newPassword,
-        })
-            .then((response) => {
-                setSuccess('Password reset successful');
-                setPasswords({
-                    currentPassword: '',
-                    newPassword: '',
-                    confirmPassword: '',
-                });
-            })
-            .catch((error) => {
-                setError('Error resetting password: ' + (error.response ? error.response.data.error : error.message));
+        try {
+            const response = await axios.post(
+                'http://localhost:8000/api/users/password-reset/',
+                {
+                    current_password: passwords.currentPassword,
+                    new_password: passwords.newPassword,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${authTokens.access}`,  // Include the auth token
+                    },
+                }
+            );
+
+            setSuccess('Password reset successful');
+            setPasswords({
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: '',
             });
+        } catch (error) {
+            setError('Error resetting password: ' + (error.response ? error.response.data.detail : error.message));
+        }
     };
 
     return (

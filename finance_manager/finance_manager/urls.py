@@ -12,6 +12,10 @@ from .views import (
     TransactionSummaryView,
     GoalListView,
     UserProfileDetailView,
+    InvestmentPortfolioView,
+    DebtAndLiabilitiesView,
+    SavingsAndGoalsView,
+    create_link_token
 )
 
 urlpatterns = [
@@ -30,14 +34,18 @@ urlpatterns = [
     path('api/accounts/', AccountBalanceView.as_view(), name='account_balance'),
     path('api/transactions/recent/', RecentTransactionsView.as_view(), name='recent_transactions'),
     path('api/transactions/', TransactionCreateView.as_view(), name='transaction_create'),
-    path('api/transactions/summary/', TransactionSummaryView.as_view(), name='transaction-summary'),
+    path('api/transaction-summary/', TransactionSummaryView.as_view(), name='transaction-summary'),
 
     # File upload
     path('api/upload-csv/', CSVUploadView.as_view(), name='upload_csv'),
 
     # Optional: Registration path outside of API (if needed)
     path('register/', UserRegisterView.as_view(), name='register'),
-
+    path('api/create_link_token/', create_link_token, name='create_link_token'),  # Add this line
     # Goals
     path('api/goals/', GoalListView.as_view(), name='goal-list'),
+
+    path('api/portfolio/', InvestmentPortfolioView.as_view(), name='investment_portfolio'),
+    path('api/debts/', DebtAndLiabilitiesView.as_view(), name='debts'),
+    path('api/goals/', SavingsAndGoalsView.as_view(), name='goals'),
 ]

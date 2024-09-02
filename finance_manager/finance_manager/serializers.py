@@ -1,11 +1,16 @@
-
 from rest_framework import serializers
-from .models import CustomUser,UserProfile,AccountSettings,Transaction,Goal
+from .models import CustomUser, UserProfile, AccountSettings, Transaction, Goal
+
+# Serializer for CustomUser
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False)
+
     class Meta:
         model = CustomUser
         fields = ('id', 'email', 'first_name', 'last_name', 'password')
-        extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True, 'required': False},
+        }
 
     def create(self, validated_data):
         user = CustomUser.objects.create_user(
@@ -15,30 +20,47 @@ class UserSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
+
+    def update(self, instance, validated_data):
+        # Update the user instance
+        instance.email = validated_data.get('email', instance.email)
+        instance.first_name = validated_data.get('first_name', instance.first_name)
+        instance.last_name = validated_data.get('last_name', instance.last_name)
+
+        # If password is provided, update it and hash it
+        password = validated_data.get('password', None)
+        if password:
+            instance.set_password(password)
+        
+        instance.save()
+        return instance
+
+# Serializer for UserProfile
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['phone']
 
+# Serializer for AccountSettings
 class AccountSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AccountSettings
         fields = ['email_notifications']
 
-class UserSerializer(serializers.ModelSerializer):
+# Serializer for CustomUser including profile and settings
+class UserDetailSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer()
     settings = AccountSettingsSerializer()
 
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email', 'profile', 'settings']
+        fields = ['id', 'email', 'profile', 'settings']
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', {})
         settings_data = validated_data.pop('settings', {})
 
         # Update user fields
-        instance.username = validated_data.get('username', instance.username)
         instance.email = validated_data.get('email', instance.email)
         instance.save()
 
@@ -53,13 +75,15 @@ class UserSerializer(serializers.ModelSerializer):
         settings.save()
 
         return instance
+
+# Serializer for Transaction
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         fields = ['id', 'user', 'description', 'amount', 'date', 'transaction_type']
         read_only_fields = ['user']  # The user field will be automatically set in the view
 
-
+# Serializer for Goal
 class GoalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Goal

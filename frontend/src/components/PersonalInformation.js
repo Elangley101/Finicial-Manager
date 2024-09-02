@@ -25,23 +25,56 @@ const PersonalInformation = ({ userData }) => {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Send the updated user data to the API
-        fetch('/api/users/profile/', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`, // Include token for authentication
-            },
-            body: JSON.stringify(formData),
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Handle success (e.g., show a success message)
+    
+        try {
+            let response = await fetch('http://localhost:8000/api/users/profile/', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                },
+                body: JSON.stringify(formData),
+            });
+    
+            if (response.status === 401) {
+                // Access token might be expired, attempt to refresh the token
+                const refreshResponse = await fetch('http://localhost:8000/api/token/refresh/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ refresh: localStorage.getItem('refresh_token') }),
+                });
+    
+                if (!refreshResponse.ok) {
+                    throw new Error('Failed to refresh token');
+                }
+    
+                const refreshData = await refreshResponse.json();
+                localStorage.setItem('access_token', refreshData.access);
+    
+                // Retry the original request with the new access token
+                response = await fetch('http://localhost:8000/api/users/profile/', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${refreshData.access}`,
+                    },
+                    body: JSON.stringify(formData),
+                });
+            }
+    
+            if (!response.ok) {
+                throw new Error('Failed to update profile');
+            }
+    
+            const data = await response.json();
             console.log('Profile updated:', data);
-        })
-        .catch(error => console.error('Error updating profile:', error));
+        } catch (error) {
+            console.error('Error updating profile:', error);
+        }
     };
 
     return (

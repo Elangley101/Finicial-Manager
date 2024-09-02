@@ -1,4 +1,3 @@
-// src/components/UserProfile.js
 import React, { useState, useEffect, useContext } from 'react';
 import { Box, Typography, Paper, CircularProgress } from '@mui/material';
 import axios from 'axios';
@@ -13,30 +12,37 @@ const UserProfile = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   useEffect(() => {
+    console.log('Auth Tokens:', authTokens); // Log the tokens to see if they are available
+
     const fetchUserData = async () => {
+      if (!authTokens) {
+        setError('User not authenticated');
+        setLoading(false);
+        return;
+      }
+
       try {
-        const response = await axios.get('/api/users/profile/', {
+        const response = await axios.get('http://localhost:8000/api/users/profile/', {
           headers: {
             Authorization: `Bearer ${authTokens.access}`,
           },
         });
         setUserData(response.data);
       } catch (err) {
-        setError('Failed to fetch user data');
+        if (err.response && err.response.status === 401) {
+          setError('User not authenticated');
+        } else {
+          setError('Failed to fetch user data');
+        }
         console.error('Error fetching user data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    if (authTokens) {
-      fetchUserData();
-    } else {
-      setLoading(false);
-      setError('User not authenticated');
-    }
+    fetchUserData();
   }, [authTokens]);
 
   if (loading) return <CircularProgress />;

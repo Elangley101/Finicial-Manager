@@ -1,15 +1,18 @@
-// src/components/CSVUpload.js
-
-import React, { useState } from 'react';
-import { Box, Button, TextField } from '@mui/material';
+import React, { useState, useContext } from 'react';
+import { Box, Button, TextField, Alert } from '@mui/material';
 import axios from 'axios';
+import AuthContext from '../context/AuthContext';
 
 const CSVUpload = () => {
     const [file, setFile] = useState(null);
     const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
+    const { authTokens } = useContext(AuthContext); // Get the authTokens from AuthContext
 
     const handleFileChange = (e) => {
         setFile(e.target.files[0]);
+        setMessage('');
+        setError('');
     };
 
     const handleSubmit = async (e) => {
@@ -18,20 +21,24 @@ const CSVUpload = () => {
         formData.append('file', file);
 
         try {
-            const response = await axios.post('/api/upload-csv/', formData, {
+            const response = await axios.post('http://localhost:8000/api/upload-csv/', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${authTokens.access}`, // Add Authorization header
                 },
             });
             setMessage(response.data.message);
+            setFile(null); // Reset the file input
         } catch (error) {
-            setMessage('Error uploading CSV');
+            setError('Error uploading CSV');
             console.error('Error uploading CSV:', error);
         }
     };
 
     return (
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+            {message && <Alert severity="success">{message}</Alert>}
+            {error && <Alert severity="error">{error}</Alert>}
             <TextField
                 type="file"
                 onChange={handleFileChange}
@@ -41,7 +48,6 @@ const CSVUpload = () => {
             <Button type="submit" variant="contained" color="primary">
                 Upload CSV
             </Button>
-            {message && <p>{message}</p>}
         </Box>
     );
 };

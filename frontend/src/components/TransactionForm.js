@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Box, Button, TextField, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import React, { useState, useContext } from 'react';
+import { Box, Button, TextField, MenuItem, Select, FormControl, InputLabel, Alert } from '@mui/material';
 import axios from 'axios';
+import AuthContext from '../context/AuthContext'; // Import the AuthContext
 
 const TransactionForm = () => {
     const [date, setDate] = useState('');
@@ -8,8 +9,12 @@ const TransactionForm = () => {
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('');
     const [type, setType] = useState('expense');
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
-    // Hardcoded categories that match the model's CATEGORY_CHOICES
+    // Access authTokens from AuthContext
+    const { authTokens } = useContext(AuthContext);
+
     const categories = [
         { value: 'groceries', label: 'Groceries' },
         { value: 'rent', label: 'Rent' },
@@ -31,27 +36,36 @@ const TransactionForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
+        setSuccess('');
         try {
-            await axios.post('http://localhost:8000/api/transactions/', {
+            const response = await axios.post('http://localhost:8000/api/transactions/', {
                 date,
                 description,
                 amount,
                 category,
                 type,
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${authTokens.access}`, // Include the access token in the request
+                },
             });
-            // Reset form or display success message
+            setSuccess('Transaction added successfully!');
             setDate('');
             setDescription('');
             setAmount('');
             setCategory('');
             setType('expense');
         } catch (error) {
+            setError('Error adding transaction');
             console.error('Error adding transaction:', error);
         }
     };
 
     return (
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+            {error && <Alert severity="error">{error}</Alert>}
+            {success && <Alert severity="success">{success}</Alert>}
             <TextField
                 label="Date"
                 type="date"

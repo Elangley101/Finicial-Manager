@@ -44,10 +44,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
-    class Meta:
-        verbose_name = _('user')
-        verbose_name_plural = _('users')
-
     def __str__(self):
         return self.email
 
@@ -96,7 +92,7 @@ class Transaction(models.Model):
         return f"{self.description} - {self.amount} ({self.type})"
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     phone = models.CharField(max_length=15, blank=True, null=True)
 
     def __str__(self):
@@ -116,3 +112,21 @@ class Goal(models.Model):
 
     def __str__(self):
         return self.name
+
+class Investment(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    value = models.DecimalField(max_digits=10, decimal_places=2)
+    growth = models.DecimalField(max_digits=5, decimal_places=2)
+
+class Debt(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    balance = models.DecimalField(max_digits=10, decimal_places=2)
+    interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
+
+class Goal(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    target_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    saved_amount = models.DecimalField(max_digits=10, decimal_places=2)
