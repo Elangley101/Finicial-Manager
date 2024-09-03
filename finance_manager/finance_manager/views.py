@@ -24,8 +24,24 @@ from plaid.model.country_code import CountryCode
 from plaid.model.link_token_create_request import LinkTokenCreateRequest
 from plaid.model.products import Products
 from plaid import ApiClient, Configuration
-from plaid import LinkTokenCreateRequestUser
+from dotenv import load_dotenv
+import os
+from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser  # Ensure this is imported
 
+
+env_path = os.path.join(os.path.dirname(__file__), 'env.env')
+load_dotenv(dotenv_path=env_path)
+
+# Now, you can access the environment variables
+PLAID_CLIENT_ID = os.getenv('PLAID_CLIENT_ID')
+PLAID_SECRET = os.getenv('PLAID_SECRET')
+PLAID_ENV = os.getenv('PLAID_ENV')
+
+if not PLAID_CLIENT_ID or not PLAID_SECRET:
+    raise ValueError("PLAID_CLIENT_ID and PLAID_SECRET must be set")
+
+# Ensure the Products enum value is correctly referenced
+products_enum_value = Products('transactions')
 # User Registration View
 @method_decorator(csrf_exempt, name='dispatch')
 class UserRegisterView(View):
@@ -234,6 +250,9 @@ class UserProfileDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
+        print(f"PLAID_ENVIRONMENT: {PLAID_ENVIRONMENT}")
+        print(f"PLAID_CLIENT_ID: {PLAID_CLIENT_ID}")
+        print(f"PLAID_SECRET: {PLAID_SECRET}")
         return self.request.user.userprofile
 
 # View to handle Account Settings retrieval and update
@@ -312,62 +331,64 @@ class SavingsAndGoalsView(APIView):
         goals = Goal.objects.filter(user=request.user)
         goals_data = [{'name': goal.name, 'targetAmount': goal.target_amount, 'savedAmount': goal.saved_amount} for goal in goals]
         return Response(goals_data)
+# Setup the Plaid API client configuration
+print(dir(Products))
+
+# Check if environment variables are set
+plaid_client_id = os.getenv('PLAID_CLIENT_ID')
+plaid_secret = os.getenv('PLAID_SECRET')
+if not plaid_client_id or not plaid_secret:
+    raise ValueError("PLAID_CLIENT_ID and PLAID_SECRET must be set")
+
+environment_url = os.getenv('PLAID_ENVIRONMENT', 'https://sandbox.plaid.com')
+
 configuration = Configuration(
-    host="https://sandbox.plaid.com",  
+    host=environment_url,
     api_key={
-        'clientId': 'your-client-id',
-        'secret': 'your-secret'
+        'clientId': plaid_client_id,
+        'secret': plaid_secret,
     }
 )
-
-# Initialize the Plaid API client
-api_client = ApiClient(configuration)
-client = plaid_api.PlaidApi(api_client)
-@api_view(['POST'])
-def create_link_token(request):
-    configuration = Configuration(
-        host="https://sandbox.plaid.com",  # Use the appropriate environment: sandbox, development, or production
-        api_key={
-            'clientId': os.getenv('PLAID_CLIENT_ID'),  # Use environment variables for security
-            'secret': os.getenv('PLAID_SECRET')  # Use environment variables for security
-        }
-    )
+print(f"Configuration: {configuration}")
 
 api_client = ApiClient(configuration)
 client = plaid_api.PlaidApi(api_client)
 
+
 @api_view(['POST'])
 def create_link_token(request):
-    user = LinkTokenCreateRequestUser(client_user_id='unique-user-id')
-
-    request = LinkTokenCreateRequest(
-        user=user,
-        client_name="Finance_Manager",
-        products=['transactions'],
-        country_codes=['US'],
-        language='en',
-    )
-
+    if not request.user.is_authenticated:
+        print("User is not authenticated.")
+        return Response({"error": "User must be authenticated and have a valid ID"}, status=400)
+    
     try:
-        response = client.link_token_create(request)
+        user_id = str(request.user.id)
+        print(f"Authenticated User ID: {user_id}")
+
+        user = LinkTokenCreateRequestUser(client_user_id=user_id)
+        
+        products_enum_value = Products('transactions')
+        print(f"Selected Product: {products_enum_value}")
+
+        link_token_request = LinkTokenCreateRequest(
+            user=user,
+            client_name="Finance_Manager",
+            products=[products_enum_value],
+            country_codes=[CountryCode('US')],
+            language='en',
+        )
+
+        response = client.link_token_create(link_token_request)
+        print("Link token created successfully.")
         return Response(response.to_dict())
+
     except Exception as e:
+        print(f"Error during link token creation: {e}")
         return Response({"error": str(e)}, status=400)
-    api_client = ApiClient(configuration)
-    client = plaid_api.PlaidApi(api_client)
 
-    user = LinkTokenCreateRequestUser(client_user_id='unique-user-id')
-
-    request = LinkTokenCreateRequest(
-        user=user,
-        client_name="Finance_Manager",
-        products=['transactions'],
-        country_codes=['US'],
-        language='en',
-    )
-
-    try:
-        response = client.link_token_create(request)
-        return Response(response.to_dict())
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
+@api_view(['GET'])
+def test_authentication(request):
+    if request.user.is_authenticated:
+        return Response({"user_id": request.user.id, "username": request.user.username})
+    else:
+        return Response({"error": "User is not authenticated"}, status=400)
