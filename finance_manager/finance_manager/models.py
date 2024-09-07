@@ -1,8 +1,10 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from decimal import Decimal
 from django.conf import settings
 
+# Custom User Manager
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -23,14 +25,8 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('Superuser must have is_superuser=True.')
 
         return self.create_user(email, password, **extra_fields)
-class AccountSettings(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    notify_transactions = models.BooleanField(default=True)
-    theme = models.CharField(max_length=20, default='light')  # Example field
-    language = models.CharField(max_length=10, default='en')  # Example field
 
-    def __str__(self):
-        return f"{self.user.email} - Settings"
+# Custom User Model
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
@@ -47,15 +43,27 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
+# Account Settings Model
+class AccountSettings(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    notify_transactions = models.BooleanField(default=True)
+    theme = models.CharField(max_length=20, default='light')
+    language = models.CharField(max_length=10, default='en')
+
+    def __str__(self):
+        return f"{self.user.email} - Settings"
+
+# Financial Data Model
 class FinancialData(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     account_name = models.CharField(max_length=255)
-    balance = models.DecimalField(max_digits=10, decimal_places=2)
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.email} - {self.account_name}"
 
+# Transaction Model
 class Transaction(models.Model):
     TRANSACTION_TYPE_CHOICES = [
         ('income', 'Income'),
@@ -91,6 +99,7 @@ class Transaction(models.Model):
     def __str__(self):
         return f"{self.description} - {self.amount} ({self.type})"
 
+# UserProfile Model
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     phone = models.CharField(max_length=15, blank=True, null=True)
@@ -98,35 +107,59 @@ class UserProfile(models.Model):
     def __str__(self):
         return self.user.email
 
+# Account Summary Model
 class AccountSummary(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    total_balance = models.DecimalField(max_digits=10, decimal_places=2)
+    total_balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     last_updated = models.DateTimeField(auto_now=True)
 
+# Goal Model
 class Goal(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     target_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    current_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    current_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     target_date = models.DateField()
 
     def __str__(self):
         return self.name
 
+# Investment Model
 class Investment(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
-    value = models.DecimalField(max_digits=10, decimal_places=2)
-    growth = models.DecimalField(max_digits=5, decimal_places=2)
+    value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    growth = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.00'))
 
-class Debt(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
-    balance = models.DecimalField(max_digits=10, decimal_places=2)
-    interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
+# BankAccount Model
+class BankAccount(models.Model):
+    ACCOUNT_TYPE_CHOICES = [
+        ('checking', 'Checking'),
+        ('savings', 'Savings'),
+        ('credit', 'Credit'),
+        ('loan', 'Loan'),
+        ('investment', 'Investment'),
+        ('other', 'Other'),
+    ]
 
-class Goal(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
-    target_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    saved_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    account_number = models.CharField(max_length=30, unique=True)
+    bank_name = models.CharField(max_length=255)
+    account_type = models.CharField(max_length=20, choices=ACCOUNT_TYPE_CHOICES)
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.bank_name} - {self.account_number} ({self.account_type})"
+
+
+
+# Plaid Account Model for storing Plaid tokens
+class PlaidAccount(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    access_token = models.CharField(max_length=255, unique=True)
+    item_id = models.CharField(max_length=255, unique=True)
+
+    def __str__(self):
+        return f"Plaid Account for {self.user.email}"

@@ -1,0 +1,3 @@
+account_number,debt_type,amount,due_date,status
+123456,Loan,5000.00,2024-12-31,pending
+654321,Credit Card,200.00,2024-09-15,paid

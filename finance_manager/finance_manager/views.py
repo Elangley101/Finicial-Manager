@@ -12,7 +12,7 @@ from rest_framework.parsers import MultiPartParser
 import json
 import csv
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import CustomUser, Goal, Transaction, UserProfile, AccountSettings,Investment, Debt, Goal
+from .models import CustomUser, Goal, Transaction, UserProfile, AccountSettings,Investment, Goal, BankAccount
 from .serializers import UserSerializer, UserProfileSerializer, AccountSettingsSerializer, GoalSerializer, TransactionSerializer
 from django.db import transaction as db_transaction
 from django.contrib.auth import get_user_model
@@ -27,6 +27,18 @@ from plaid import ApiClient, Configuration
 from dotenv import load_dotenv
 import os
 from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser  # Ensure this is imported
+from django.db import IntegrityError, transaction as db_transaction
+from django.db.utils import OperationalError
+from MySQLdb import Error as MySQLError
+from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
+from plaid.model.accounts_get_request import AccountsGetRequest
+from plaid.model.accounts_get_request import AccountsGetRequest
+from plaid.model.transactions_get_request import TransactionsGetRequest
+from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
+from datetime import datetime, timedelta
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
 
 
 env_path = os.path.join(os.path.dirname(__file__), 'env.env')
@@ -47,21 +59,31 @@ products_enum_value = Products('transactions')
 class UserRegisterView(View):
     def post(self, request):
         try:
+            # Parse request body as JSON
             data = json.loads(request.body)
-            email = data['email']
-            password = data['password']
+            
+            # Extract required fields
+            email = data.get('email')
+            password = data.get('password')
             first_name = data.get('first_name', '')
             last_name = data.get('last_name', '')
-
+            
+            # Validate required fields
+            if not email or not password:
+                return JsonResponse({"error": "Email and password are required"}, status=400)
+            
+            # Check if the user already exists
             if CustomUser.objects.filter(email=email).exists():
                 return JsonResponse({"error": "Email already exists"}, status=400)
 
+            # Create the user
             user = CustomUser.objects.create(
                 email=email,
-                password=make_password(password),
                 first_name=first_name,
                 last_name=last_name
             )
+            user.set_password(password)  # This handles password hashing
+            user.save()
 
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
@@ -72,6 +94,8 @@ class UserRegisterView(View):
 
             return JsonResponse({"message": "User registered successfully", "tokens": tokens}, status=201)
 
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
         except KeyError as e:
             return JsonResponse({"error": f"Missing field: {str(e)}"}, status=400)
         except Exception as e:
@@ -134,7 +158,6 @@ class TransactionCreateView(APIView):
             }
         })
 
-# CSV Upload View
 class CSVUploadView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser]
@@ -142,64 +165,73 @@ class CSVUploadView(APIView):
     def post(self, request):
         file = request.FILES.get('file')
         if not file or not file.name.endswith('.csv'):
-            print('No CSV file uploaded or incorrect file format.')
             return Response({'error': 'Please upload a valid CSV file.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             decoded_file = file.read().decode('utf-8-sig').splitlines()
-            print(f"File successfully decoded. Number of lines: {len(decoded_file)}")
         except UnicodeDecodeError:
-            try:
-                decoded_file = file.read().decode('ISO-8859-1').splitlines()
-                print(f"File successfully decoded with ISO-8859-1 encoding. Number of lines: {len(decoded_file)}")
-            except UnicodeDecodeError:
-                print('File could not be decoded. Unsupported encoding.')
-                return Response({'error': 'File could not be decoded. Please upload a valid CSV file.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'File could not be decoded. Please upload a valid CSV file.'}, status=status.HTTP_400_BAD_REQUEST)
 
         reader = csv.DictReader(decoded_file)
-
-        expected_headers = ['Date', 'Description', 'Amount', 'Category', 'Type']
-        if reader.fieldnames != expected_headers:
-            print(f"Incorrect headers. Expected {expected_headers}, but got {reader.fieldnames}")
-            return Response({'error': f"Incorrect headers. Expected {expected_headers}, but got {reader.fieldnames}"}, status=status.HTTP_400_BAD_REQUEST)
-
-        transactions_created = 0
+        transactions_df = []
+        debts_df = []
+        bank_accounts_df = []
 
         for row in reader:
-            try:
-                date_str = row['Date']
-                description = row['Description']
-                amount = row['Amount']
-                category = row['Category']
-                type = row['Type']
+            if 'bank_name' in row and 'account_number' in row:
+                bank_accounts_df.append(row)
+            elif 'transaction_type' in row and 'date' in row:
+                transactions_df.append(row)
+            elif 'debt_type' in row and 'due_date' in row:
+                debts_df.append(row)
 
-                # Convert date to YYYY-MM-DD format
-                date = datetime.strptime(date_str, '%m/%d/%Y').strftime('%Y-%m-%d')
+        transactions_created = 0
+        debts_created = 0
+        bank_accounts_created = 0
 
-                print(f"Date: {date}, Description: {description}, Amount: {amount}, Category: {category}, Type: {type}")
-                
-                transaction = Transaction.objects.create(
-                    user=request.user,
-                    date=date,
-                    description=description,
-                    amount=amount,
-                    category=category,
-                    type=type
-                )
-                transactions_created += 1
-                print(f"Created Transaction: {transaction}")
-            except KeyError as e:
-                print(f'Missing expected field in row: {row}. Error: {e}')
-                return Response({'error': f"Missing expected field in row: {row}. Error: {e}"}, status=status.HTTP_400_BAD_REQUEST)
-            except ValueError as e:
-                print(f'Error parsing date in row {row}: {e}')
-                return Response({'error': f'Error parsing date in row: {row}. Error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception as e:
-                print(f'Error creating transaction from row {row}: {e}')
-                return Response({'error': f'Failed to process row: {row}. Error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            with db_transaction.atomic():  # Ensure all inserts are atomic
+                # Insert BankAccount
+                for row in bank_accounts_df:
+                    bank_account = BankAccount.objects.create(
+                        user=request.user,  # Make sure this is the current user
+                        account_number=row['account_number'],
+                        bank_name=row['bank_name'],
+                        account_type=row['account_type'],
+                        balance=row['balance']
+                    )
+                    bank_accounts_created += 1
 
-        print(f"Successfully created {transactions_created} transactions.")
-        return Response({"message": "CSV uploaded and processed successfully"}, status=status.HTTP_201_CREATED)
+                # Insert Transactions
+                for t_row in transactions_df:
+                    try:
+                        bank_account = BankAccount.objects.get(
+                            user=request.user,
+                            account_number=t_row['account_number']
+                        )
+                        Transaction.objects.create(
+                            user=request.user,
+                            date=datetime.strptime(t_row['date'], '%Y-%m-%d'),
+                            description=t_row['description'],
+                            amount=t_row['amount'],
+                            category=t_row['category'],  # Ensure category matches the model choices
+                            type=t_row['transaction_type']  # Map CSV's `transaction_type` to `type` field
+                        )
+                        transactions_created += 1
+                    except BankAccount.DoesNotExist:
+                        print(f"Bank account not found for transaction row: {t_row}")
+
+            return Response({
+                "message": "CSV uploaded and processed successfully",
+                "bank_accounts_created": bank_accounts_created,
+                "transactions_created": transactions_created,
+                "debts_created": debts_created,
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            print(f"Error: {e}")
+            return Response({'error': f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # Account Settings View
 class AccountSettingsView(generics.RetrieveUpdateAPIView):
@@ -250,7 +282,6 @@ class UserProfileDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        print(f"PLAID_ENVIRONMENT: {PLAID_ENVIRONMENT}")
         print(f"PLAID_CLIENT_ID: {PLAID_CLIENT_ID}")
         print(f"PLAID_SECRET: {PLAID_SECRET}")
         return self.request.user.userprofile
@@ -316,13 +347,6 @@ class InvestmentPortfolioView(APIView):
         }
         return Response(portfolio)
 
-class DebtAndLiabilitiesView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        debts = Debt.objects.filter(user=request.user)
-        debt_data = [{'name': debt.name, 'balance': debt.balance, 'interestRate': debt.interest_rate} for debt in debts]
-        return Response(debt_data)
 
 class SavingsAndGoalsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -392,3 +416,80 @@ def test_authentication(request):
         return Response({"user_id": request.user.id, "username": request.user.username})
     else:
         return Response({"error": "User is not authenticated"}, status=400)
+    
+
+
+
+
+def get_accounts_from_plaid(access_token):
+    try:
+        request = AccountsGetRequest(access_token=access_token)
+        response = client.accounts_get(request)
+        return response['accounts']  # This contains the account data
+    except Exception as e:
+        print(f"Error fetching accounts: {e}")
+        return None
+def get_accounts_from_plaid(access_token):
+    try:
+        request = AccountsGetRequest(access_token=access_token)
+        response = client.accounts_get(request)
+        return response['accounts']  # This contains the account data
+    except Exception as e:
+        print(f"Error fetching accounts: {e}")
+        return None
+
+client = plaid_api.PlaidApi(api_client)  # Initialize the Plaid API client here
+
+@api_view(['GET'])  # Explicitly allow GET requests
+def get_accounts(request):
+    # Retrieve the user's access token from session, DB, etc.
+    access_token = request.session.get('plaid_access_token') 
+
+    if not access_token:
+        return Response({"error": "Access token not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Get accounts
+        accounts_request = AccountsGetRequest(access_token=access_token)
+        accounts_response = client.accounts_get(accounts_request)
+        accounts = accounts_response["accounts"]
+
+        # Get recent transactions (optional)
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        options = TransactionsGetRequestOptions(count=10)
+        transactions_request = TransactionsGetRequest(
+            access_token=access_token,
+            start_date=start_date,
+            end_date=end_date,
+            options=options
+        )
+        transactions_response = client.transactions_get(transactions_request)
+        transactions = transactions_response["transactions"]
+
+        # Format accounts and transactions for frontend
+        formatted_accounts = [
+            {
+                "name": acc["name"],
+                "accountNumber": acc["mask"],
+                "balance": acc["balances"]["current"],
+                "official_name": acc["official_name"]
+            } for acc in accounts
+        ]
+        
+        formatted_transactions = [
+            {
+                "date": txn["date"],
+                "description": txn["name"],
+                "amount": txn["amount"],
+                "category": txn["category"]
+            } for txn in transactions
+        ]
+
+        return Response({
+            "accounts": formatted_accounts,
+            "transactions": formatted_transactions
+        })
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

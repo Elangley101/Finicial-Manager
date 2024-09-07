@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, UserProfile, AccountSettings, Transaction, Goal
+from .models import CustomUser, UserProfile, AccountSettings, Transaction, Goal, PlaidAccount
 
 # Serializer for CustomUser
 class UserSerializer(serializers.ModelSerializer):
@@ -88,3 +88,7 @@ class GoalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Goal
         fields = ['id', 'name', 'target_amount', 'current_amount', 'target_date']
+class PlaidAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlaidAccount
+        fields = ['id', 'user', 'access_token', 'item_id', 'institution_name']

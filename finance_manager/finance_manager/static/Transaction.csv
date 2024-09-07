@@ -1,0 +1,3 @@
+account_number,date,amount,transaction_type,description
+123456,2024-09-01,50.00,expense,Grocery Shopping
+654321,2024-09-02,1500.00,income,Salary

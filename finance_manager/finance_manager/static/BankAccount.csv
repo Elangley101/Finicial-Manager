@@ -1,0 +1,3 @@
+account_number,bank_name,account_type,balance
+123456,Sample Bank,Savings,1000.00
+654321,Another Bank,Checking,500.00

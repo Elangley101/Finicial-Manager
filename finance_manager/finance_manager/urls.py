@@ -1,5 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions
 from .views import (
     UserRegisterView,
     UserProfileView,
@@ -13,9 +14,9 @@ from .views import (
     GoalListView,
     UserProfileDetailView,
     InvestmentPortfolioView,
-    DebtAndLiabilitiesView,
     SavingsAndGoalsView,
-    create_link_token
+    create_link_token,
+    get_accounts,
 )
 
 urlpatterns = [
@@ -46,6 +47,15 @@ urlpatterns = [
     path('api/goals/', GoalListView.as_view(), name='goal-list'),
 
     path('api/portfolio/', InvestmentPortfolioView.as_view(), name='investment_portfolio'),
-    path('api/debts/', DebtAndLiabilitiesView.as_view(), name='debts'),
     path('api/goals/', SavingsAndGoalsView.as_view(), name='goals'),
+
+    path('api/exchange_public_token/', exchange_public_token_view, name='exchange_public_token'),
+
+    # URL for getting transactions (optional)
+    path('api/get_transactions/', get_transactions_view, name='get_transactions'),
+
+    # URL for fetching accounts (optional)
+    path('api/fetch_accounts/', fetch_accounts_view, name='fetch_accounts'),
+    path('api/plaid/accounts', get_accounts_and_transactions, name='get_accounts_and_transactions'),
 ]
+
