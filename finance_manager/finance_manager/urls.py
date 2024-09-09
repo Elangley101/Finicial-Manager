@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions
+from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions,get_account_details
 from .views import (
     UserRegisterView,
     UserProfileView,
@@ -17,6 +17,7 @@ from .views import (
     SavingsAndGoalsView,
     create_link_token,
     get_accounts,
+    
 )
 
 urlpatterns = [
@@ -57,5 +58,6 @@ urlpatterns = [
     # URL for fetching accounts (optional)
     path('api/fetch_accounts/', fetch_accounts_view, name='fetch_accounts'),
     path('api/plaid/accounts', get_accounts_and_transactions, name='get_accounts_and_transactions'),
+    path('plaid/account/<str:account_id>/', get_account_details, name='get_account_details'),
 ]
 

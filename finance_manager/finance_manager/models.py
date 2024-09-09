@@ -157,9 +157,44 @@ class BankAccount(models.Model):
 
 # Plaid Account Model for storing Plaid tokens
 class PlaidAccount(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    access_token = models.CharField(max_length=255, unique=True)
-    item_id = models.CharField(max_length=255, unique=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    access_token = models.CharField(max_length=255)
+    item_id = models.CharField(max_length=255)
+    institution_name = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Plaid Account for {self.user.email}"
+        return f'{self.user.email} - {self.institution_name}'
+
+class PlaidTransaction(models.Model):
+    plaid_account = models.ForeignKey(PlaidAccount, on_delete=models.CASCADE, related_name='transactions')
+    transaction_id = models.CharField(max_length=255, unique=True)  # Unique Plaid transaction ID
+    account_id = models.CharField(max_length=255)  # ID of the Plaid account associated with this transaction
+    name = models.CharField(max_length=255)  # Transaction name
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # Transaction amount
+    date = models.DateField()  # Transaction date
+    merchant_name = models.CharField(max_length=255, null=True, blank=True)  # Optional merchant name
+    category = models.JSONField(null=True, blank=True)  # Category of the transaction (can be a list of categories)
+    pending = models.BooleanField(default=False)  # Whether the transaction is pending or not
+    created_at = models.DateTimeField(auto_now_add=True)  # Automatically set the time of creation
+    updated_at = models.DateTimeField(auto_now=True)  # Automatically update time on model save
+
+    def __str__(self):
+        return f"{self.name} - {self.amount} on {self.date}"
+
+class AccountBalance(models.Model):
+    plaid_account = models.ForeignKey(PlaidAccount, on_delete=models.CASCADE, related_name='balances')
+    account_id = models.CharField(max_length=255)  # The Plaid account ID
+    name = models.CharField(max_length=255)  # Account name
+    type = models.CharField(max_length=100)  # Type of account (e.g., depository, credit, loan)
+    subtype = models.CharField(max_length=100, null=True, blank=True)  # Subtype of the account (e.g., checking, savings)
+    current_balance = models.DecimalField(max_digits=12, decimal_places=2)  # Current balance
+    available_balance = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # Available balance (optional)
+    limit = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # Credit limit (optional)
+    iso_currency_code = models.CharField(max_length=3, null=True, blank=True)  # ISO currency code (e.g., USD)
+    unofficial_currency_code = models.CharField(max_length=10, null=True, blank=True)  # Unofficial currency code (if present)
+    created_at = models.DateTimeField(auto_now_add=True)  # Automatically set the time of creation
+    updated_at = models.DateTimeField(auto_now=True)  # Automatically update time on model save
+
+    def __str__(self):
+        return f"{self.name} - {self.current_balance} {self.iso_currency_code}"
