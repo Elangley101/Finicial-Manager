@@ -1,8 +1,5 @@
-// src/context/AuthContext.js
-
 import React, { createContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlaidLink } from 'react-plaid-link';
 
 const AuthContext = createContext();
 
@@ -17,7 +14,6 @@ export const AuthProvider = ({ children }) => {
 
     const loginUser = async (email, password) => {
         try {
-            // Authenticate user
             const response = await fetch('http://localhost:8000/api/token/', {
                 method: 'POST',
                 headers: {
@@ -25,17 +21,15 @@ export const AuthProvider = ({ children }) => {
                 },
                 body: JSON.stringify({ email, password })
             });
-
             const data = await response.json();
 
             if (response.ok) {
-                // Store tokens in local storage
                 setAuthTokens(data);
                 localStorage.setItem('access_token', data.access);
                 localStorage.setItem('refresh_token', data.refresh);
-                return data;
+                navigate('/dashboard');
             } else {
-                console.error('Login failed:', data);
+                console.error('Login failed:', data.detail || data);
             }
         } catch (error) {
             console.error('An error occurred during login:', error);
@@ -63,22 +57,24 @@ export const AuthProvider = ({ children }) => {
                 },
                 body: JSON.stringify({ refresh: authTokens.refresh })
             });
-
             const data = await response.json();
+
             if (response.ok) {
                 setAuthTokens(prev => ({ ...prev, access: data.access }));
                 localStorage.setItem('access_token', data.access);
             } else {
+                console.error('Failed to refresh token:', data.detail || data);
                 logoutUser();
             }
         } catch (error) {
+            console.error('An error occurred during token refresh:', error);
             logoutUser();
         }
     };
 
     useEffect(() => {
         if (authTokens) {
-            const interval = setInterval(refreshToken, 15 * 60 * 1000);  // Refresh token every 15 minutes
+            const interval = setInterval(refreshToken, 15 * 60 * 1000); // Refresh every 15 minutes
             return () => clearInterval(interval);
         }
     }, [authTokens]);

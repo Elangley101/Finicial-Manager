@@ -1,0 +1,59 @@
+/* Flex container for sidebar and main content */
+.container {
+  display: flex;
+  height: 100vh;  /* Full viewport height */
+  width: 100%;
+}
+
+/* Sidebar styling */
+.sidebar {
+  width: 20%;  /* Set the width of the sidebar */
+  background-color: #f7f7f7;
+  padding: 20px;
+  border-right: 1px solid #ccc;
+  box-sizing: border-box;
+  overflow-y: auto;  /* Enable scroll if needed */
+}
+
+/* Sidebar account item styling */
+.account-item {
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #fff;
+  transition: background-color 0.3s;
+}
+
+.account-item:hover {
+  background-color: #f1f1f1;
+}
+
+.account-item.active {
+  background-color: #e0e0e0;
+  border-color: #bbb;
+}
+
+/* Main content styling */
+.main-content {
+  flex-grow: 1;  /* Take up remaining space */
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+/* Transactions list */
+.main-content ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.main-content li {
+  border-bottom: 1px solid #ccc;
+  padding: 10px 0;
+}
+
+.main-content li:last-child {
+  border-bottom: none;
+}
