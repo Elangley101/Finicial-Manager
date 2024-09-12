@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions,get_account_details
+from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions,get_account_details,get_investment_details,get_loan_details,get_credit_card_details,get_401k_details
 from .views import (
     UserRegisterView,
     UserProfileView,
@@ -59,6 +59,23 @@ urlpatterns = [
     path('api/fetch_accounts/', fetch_accounts_view, name='fetch_accounts'),
     path('api/plaid/accounts', get_accounts_and_transactions, name='get_accounts_and_transactions'),
     path('api/plaid/account/<str:account_id>/', get_account_details, name='get_account_details'),
+
+        # General account details for any account type
+    path('api/plaid/account/<str:account_id>/', get_account_details, name='get_account_details'),
+    
+    # Specific endpoint for fetching investment account details
+    path('api/plaid/investment/<str:account_id>/', get_investment_details, name='get_investment_details'),
+
+    # Specific endpoint for fetching loan account details
+    path('api/plaid/loan/<str:account_id>/', get_loan_details, name='get_loan_details'),
+    
+    # Specific endpoint for fetching credit card account details
+    path('api/plaid/credit/<str:account_id>/', get_credit_card_details, name='get_credit_card_details'),
+    
+    # If you have a specific endpoint for 401k accounts
+    path('api/plaid/401k/<str:account_id>/', get_401k_details, name='get_401k_details'),
+
+    # Additional endpoints can be added here as needed..
 
 ]
 

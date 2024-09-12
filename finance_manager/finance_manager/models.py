@@ -157,7 +157,7 @@ class BankAccount(models.Model):
 
 # Plaid Account Model for storing Plaid tokens
 class PlaidAccount(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     access_token = models.CharField(max_length=255)
     item_id = models.CharField(max_length=255)
     institution_name = models.CharField(max_length=255, null=True, blank=True)

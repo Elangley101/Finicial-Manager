@@ -14,7 +14,9 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from rest_framework.permissions import IsAuthenticated
 from plaid import ApiClient, Configuration, Environment
-
+from plaid.model.transactions_get_request import TransactionsGetRequest 
+from plaid.model.investments_holdings_get_request import InvestmentsHoldingsGetRequest
+from plaid.model.investments_transactions_get_request import InvestmentsTransactionsGetRequest
 # Load environment variables
 load_dotenv()
 
@@ -72,18 +74,149 @@ def exchange_public_token(public_token):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_account_details(request, account_id):
-    # Get the access token from query parameters
-    access_token = request.query_params.get('access_token')  # Extract access_token from query params
+    # Extract the token from the Authorization header
+    auth_header = request.headers.get('Authorization')
 
-    if not access_token:
-        return Response({"error": "Access token is missing"}, status=status.HTTP_400_BAD_REQUEST)
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return Response({"error": "Access token is missing or invalid"}, status=status.HTTP_400_BAD_REQUEST)
+
+    access_token = auth_header.split(' ')[1]
 
     try:
-        # Fetch transactions for the specific account using the access_token and account_id
-        start_date = (datetime.now() - timedelta(days=30)).date()
+        # Create the request object for accounts_get
+        accounts_get_request = AccountsGetRequest(access_token=access_token)
+
+        # Call Plaid's accounts_get method with the request object
+        accounts_response = plaid_client.accounts_get(accounts_get_request)
+        accounts = accounts_response['accounts']
+
+        # Find the specific account by account_id
+        account = next((acc for acc in accounts if acc['account_id'] == account_id), None)
+        if not account:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the account is an investment or 401k account
+        if account['type'] == 'investment' or account['subtype'] == '401k':
+            return get_investment_details(request, account_id)
+
+        # If not investment or 401k, fetch general transactions
+        return get_general_account_transactions(access_token, account_id)
+
+    except Exception as e:
+        return Response({"error": f"Error fetching account details: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def get_investment_details(access_token, account_id):
+    try:
+        # Fetch investment holdings
+        holdings_request = InvestmentsHoldingsGetRequest(access_token=access_token)
+        holdings_response = plaid_client.investments_holdings_get(holdings_request)
+
+        # Fetch investment transactions for the specific account
+        start_date = (datetime.now() - timedelta(days=365)).date()  # Pull transactions for last year
         end_date = datetime.now().date()
 
-        # Create a request object to get transactions for a specific account
+        transactions_request = InvestmentsTransactionsGetRequest(
+            access_token=access_token,
+            start_date=start_date,
+            end_date=end_date,
+            account_ids=[account_id]  # Filter for the specific investment account
+        )
+        transactions_response = plaid_client.investments_transactions_get(transactions_request)
+
+        return Response({
+            'holdings': holdings_response['holdings'],
+            'transactions': transactions_response['investment_transactions'],
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": f"Error fetching investment details: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+def get_credit_card_details(request, account_id):
+    try:
+        # Get the access token from the Authorization header
+        auth_header = request.headers.get('Authorization')
+
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({"error": "Access token is missing or invalid"}, status=status.HTTP_400_BAD_REQUEST)
+
+        access_token = auth_header.split(' ')[1]
+
+        # Fetch credit card details
+        balance_response = plaid_client.accounts_balance_get(access_token)
+
+        # Filter by account_id to get the specific credit card account
+        account = next((acc for acc in balance_response['accounts'] if acc['account_id'] == account_id), None)
+        if not account:
+            return Response({"error": "Credit card account not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Return account details as a response
+        return Response({
+            "account_id": account_id,
+            "available_credit": account['balances'].get('available', 'N/A'),
+            "current_balance": account['balances'].get('current', 'N/A'),
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": f"Error fetching credit card details: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+def get_loan_details(access_token, account_id):
+    try:
+        # Fetch liabilities (loans, mortgages, etc.)
+        liabilities_response = plaid_client.liabilities_get(access_token)
+        loans = liabilities_response['liabilities']['loans']
+
+        # Filter by account_id to find the correct loan account
+        loan = next((l for l in loans if l['account_id'] == account_id), None)
+        if not loan:
+            return Response({"error": "Loan account not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            "account_id": loan['account_id'],
+            "remaining_balance": loan['balance']['current'],
+            "interest_rate": loan['interest_rate_percentage'],
+            "next_payment_due": loan['next_payment_due_date'],
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": f"Error fetching loan details: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def get_401k_details(access_token, account_id):
+    try:
+        # Fetch investment holdings (this includes 401k holdings)
+        holdings_request = InvestmentsHoldingsGetRequest(access_token=access_token)
+        holdings_response = plaid_client.investments_holdings_get(holdings_request)
+
+        # Fetch investment transactions for the specific 401k account
+        start_date = (datetime.now() - timedelta(days=365)).date()  # Pull transactions for last year
+        end_date = datetime.now().date()
+
+        transactions_request = InvestmentsTransactionsGetRequest(
+            access_token=access_token,
+            start_date=start_date,
+            end_date=end_date,
+            account_ids=[account_id]  # Filter for the specific 401k account
+        )
+        transactions_response = plaid_client.investments_transactions_get(transactions_request)
+
+        # Filter the holdings and transactions to only include 401k-related information
+        holdings = [holding for holding in holdings_response['holdings'] if holding['account_id'] == account_id]
+        transactions = transactions_response['investment_transactions']
+
+        return Response({
+            'account_id': account_id,
+            'holdings': holdings,  # 401k holdings (stocks, bonds, etc.)
+            'transactions': transactions,  # Investment transactions (buying, selling, etc.)
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": f"Error fetching 401k details: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def get_general_account_transactions(access_token, account_id):
+    try:
+        # Fetch transactions for the specific account
+        start_date = (datetime.now() - timedelta(days=30)).date()  # Pull transactions for last 30 days
+        end_date = datetime.now().date()
+
         transactions_request = TransactionsGetRequest(
             access_token=access_token,
             start_date=start_date,
@@ -98,7 +231,6 @@ def get_account_details(request, account_id):
 
     except Exception as e:
         return Response({"error": f"Error fetching transactions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
 def get_accounts_from_plaid(access_token):
     try:
         # Create a request for fetching accounts using the access_token
