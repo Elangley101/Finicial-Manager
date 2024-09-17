@@ -74,36 +74,28 @@ def exchange_public_token(public_token):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_account_details(request, account_id):
-    # Extract the token from the Authorization header
-    auth_header = request.headers.get('Authorization')
-
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return Response({"error": "Access token is missing or invalid"}, status=status.HTTP_400_BAD_REQUEST)
-
-    access_token = auth_header.split(' ')[1]
-
     try:
-        # Create the request object for accounts_get
-        accounts_get_request = AccountsGetRequest(access_token=access_token)
+        # Get the user's PlaidAccount instance
+        plaid_account = PlaidAccount.objects.get(user=request.user, item_id=account_id)
+        
+        # Retrieve the access token from the PlaidAccount model
+        access_token = plaid_account.access_token
+        
+        # Fetch account details from Plaid using the access token and account_id
+        accounts_request = AccountsGetRequest(access_token=access_token)
+        accounts_response = plaid_client.accounts_get(accounts_request)
 
-        # Call Plaid's accounts_get method with the request object
-        accounts_response = plaid_client.accounts_get(accounts_get_request)
-        accounts = accounts_response['accounts']
+        account = next((acc for acc in accounts_response['accounts'] if acc['item_id'] == account_id), None)
 
-        # Find the specific account by account_id
-        account = next((acc for acc in accounts if acc['account_id'] == account_id), None)
-        if not account:
-            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+        if account:
+            return Response(account, status=200)
+        else:
+            return Response({"error": "Account not found"}, status=404)
 
-        # Check if the account is an investment or 401k account
-        if account['type'] == 'investment' or account['subtype'] == '401k':
-            return get_investment_details(request, account_id)
-
-        # If not investment or 401k, fetch general transactions
-        return get_general_account_transactions(access_token, account_id)
-
+    except PlaidAccount.DoesNotExist:
+        return Response({"error": "No Plaid account found for this user."}, status=404)
     except Exception as e:
-        return Response({"error": f"Error fetching account details: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": str(e)}, status=500)
 
 
 def get_investment_details(access_token, account_id):

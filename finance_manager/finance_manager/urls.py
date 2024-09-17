@@ -57,7 +57,7 @@ urlpatterns = [
 
     # URL for fetching accounts (optional)
     path('api/fetch_accounts/', fetch_accounts_view, name='fetch_accounts'),
-    path('api/plaid/accounts', get_accounts_and_transactions, name='get_accounts_and_transactions'),
+    path('api/plaid/accounts/', get_accounts_and_transactions, name='get_accounts_and_transactions'),
     path('api/plaid/account/<str:account_id>/', get_account_details, name='get_account_details'),
 
         # General account details for any account type
