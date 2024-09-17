@@ -1,6 +1,10 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+<<<<<<< HEAD
 from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions,get_account_details,get_investment_details,get_loan_details,get_credit_card_details,get_401k_details
+=======
+from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions,get_account_details,reset_plaid_login,get_plaid_link_token
+>>>>>>> parent of e8e9eea8 (Frontend and Auth Changes)
 from .views import (
     UserRegisterView,
     UserProfileView,
@@ -58,6 +62,7 @@ urlpatterns = [
     # URL for fetching accounts (optional)
     path('api/fetch_accounts/', fetch_accounts_view, name='fetch_accounts'),
     path('api/plaid/accounts', get_accounts_and_transactions, name='get_accounts_and_transactions'),
+<<<<<<< HEAD
     path('api/plaid/account/<str:account_id>/', get_account_details, name='get_account_details'),
 
         # General account details for any account type
@@ -77,5 +82,10 @@ urlpatterns = [
 
     # Additional endpoints can be added here as needed..
 
+=======
+    path('plaid/account/<str:account_id>/', get_account_details, name='get_account_details'),
+    path('api/get_plaid_link_token/', get_plaid_link_token, name='get_plaid_link_token'),
+    path('api/reset_plaid_login/',reset_plaid_login, name='reset_plaid')
+>>>>>>> parent of e8e9eea8 (Frontend and Auth Changes)
 ]
 

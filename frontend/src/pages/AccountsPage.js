@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+<<<<<<< HEAD
 import '../css/AccountsPage.css';  // CSS for layout
+=======
+>>>>>>> parent of e8e9eea8 (Frontend and Auth Changes)
 
 const AccountsPage = () => {
   const [accounts, setAccounts] = useState([]);
-  const [transactions, setTransactions] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [accountDetails, setAccountDetails] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchAccountsAndTransactions = async () => {
+    const fetchAccounts = async () => {
       try {
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -18,7 +20,7 @@ const AccountsPage = () => {
           return;
         }
 
-        // Fetch the user's linked accounts and transactions from the backend
+        // Fetch the user's linked accounts
         const response = await axios.get('http://localhost:8000/api/plaid/accounts', {
           headers: {
             Authorization: `Bearer ${token}`,  // Send access token
@@ -27,21 +29,22 @@ const AccountsPage = () => {
 
         console.log('Full API Response:', response.data);  // Log the full API response for inspection
         setAccounts(response.data.accounts);  // Set the accounts data
-        setTransactions(response.data.transactions);  // Set the transactions data
       } catch (error) {
-        setError('Failed to fetch accounts and transactions. Make sure the backend is running.');
-        console.error('Error fetching accounts and transactions:', error);
+        setError('Failed to fetch accounts. Make sure the backend is running.');
+        console.error('Error fetching accounts:', error);
       }
     };
 
-    fetchAccountsAndTransactions();
+    fetchAccounts();
   }, []);
 
-  // Filter transactions by accountId
-  const filterTransactionsByAccount = (accountId) => {
-    return transactions.filter(transaction => transaction.account_id === accountId);
-  };
+  const fetchAccountDetails = async (accountId) => {
+    if (!accountId) {
+      setError('Account ID is missing.');
+      return;
+    }
 
+<<<<<<< HEAD
   const handleAccountClick = async (account) => {
     try {
       const token = localStorage.getItem('access_token');
@@ -73,6 +76,25 @@ const AccountsPage = () => {
   
       setAccountDetails(response.data);  // Set the account details in state
     } catch (error) {
+=======
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setError('No access token found. Please log in.');
+        return;
+      }
+
+      const response = await axios.get(`http://localhost:8000/api/plaid/account/${accountId}/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,  // Send access token
+        },
+      });
+
+      setAccountDetails(response.data);
+      setSelectedAccount(accountId);
+    } catch (error) {
+      setError('Failed to fetch account details. Make sure the backend is running.');
+>>>>>>> parent of e8e9eea8 (Frontend and Auth Changes)
       console.error('Error fetching account details:', error);
     }
   };
@@ -173,6 +195,7 @@ const AccountsPage = () => {
   }
 
   return (
+<<<<<<< HEAD
     <div className="container">
       {/* Sidebar: List of accounts */}
       <div className="sidebar">
@@ -200,6 +223,22 @@ const AccountsPage = () => {
       <div className="main-content">
         {renderAccountDetails()}
       </div>
+=======
+    <div>
+      {accounts.map((account, index) => {
+        // Use account.id if available, otherwise generate a unique id using index
+        const accountId = account.id || `account-${index}`;
+        
+        return (
+          <div key={accountId}>
+            <h3>{account.name}</h3>
+            <p>Type: {account.type}</p>
+            <p>Subtype: {account.subtype}</p>
+            <p>Balance: {account.balance}</p>
+          </div>
+        );
+      })}
+>>>>>>> parent of e8e9eea8 (Frontend and Auth Changes)
     </div>
   );
 };

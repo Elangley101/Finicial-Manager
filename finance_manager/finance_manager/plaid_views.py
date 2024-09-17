@@ -4,7 +4,7 @@ from plaid.api import plaid_api
 from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 from plaid.model.accounts_get_request import AccountsGetRequest
-from .models import PlaidAccount
+from .models import PlaidAccount,AccountBalance,CustomUser
 from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
@@ -14,9 +14,18 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from rest_framework.permissions import IsAuthenticated
 from plaid import ApiClient, Configuration, Environment
+<<<<<<< HEAD
 from plaid.model.transactions_get_request import TransactionsGetRequest 
 from plaid.model.investments_holdings_get_request import InvestmentsHoldingsGetRequest
 from plaid.model.investments_transactions_get_request import InvestmentsTransactionsGetRequest
+=======
+from plaid.exceptions import ApiException
+import json
+from rest_framework.permissions import IsAuthenticated
+from plaid.model.sandbox_item_reset_login_request import SandboxItemResetLoginRequest
+
+
+>>>>>>> parent of e8e9eea8 (Frontend and Auth Changes)
 # Load environment variables
 load_dotenv()
 
@@ -74,6 +83,7 @@ def exchange_public_token(public_token):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_account_details(request, account_id):
+<<<<<<< HEAD
     # Extract the token from the Authorization header
     auth_header = request.headers.get('Authorization')
 
@@ -217,20 +227,41 @@ def get_general_account_transactions(access_token, account_id):
         start_date = (datetime.now() - timedelta(days=30)).date()  # Pull transactions for last 30 days
         end_date = datetime.now().date()
 
+=======
+    try:
+        plaid_account = PlaidAccount.objects.get(user=request.user, account_id=account_id)
+        access_token = plaid_account.access_token
+
+        # Fetch detailed account information using access token and account_id
+        accounts = get_accounts_from_plaid(access_token)
+
+        # Fetch transactions for this account
+        start_date = (datetime.now() - timedelta(days=30)).date()
+        end_date = datetime.now().date()
+>>>>>>> parent of e8e9eea8 (Frontend and Auth Changes)
         transactions_request = TransactionsGetRequest(
             access_token=access_token,
             start_date=start_date,
-            end_date=end_date,
-            account_ids=[account_id]  # Filter transactions for this specific account
+            end_date=end_date
         )
         transactions_response = plaid_client.transactions_get(transactions_request)
 
+        # Return detailed data including investments, transactions, etc.
         return Response({
-            'transactions': transactions_response['transactions'],  # Return filtered transactions
+            'account': accounts,
+            'transactions': transactions_response['transactions'],
+            'investments': [],  # Add logic to fetch investments if applicable
         }, status=status.HTTP_200_OK)
-
+    
+    except PlaidAccount.DoesNotExist:
+        return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
+<<<<<<< HEAD
         return Response({"error": f"Error fetching transactions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+=======
+        return Response({"error": f"Error fetching account details: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+>>>>>>> parent of e8e9eea8 (Frontend and Auth Changes)
 def get_accounts_from_plaid(access_token):
     try:
         # Create a request for fetching accounts using the access_token
@@ -364,12 +395,6 @@ def get_transactions_view(request):
 def get_accounts_and_transactions(request):
     try:
         user = request.user
-
-        # Ensure the user is authenticated
-        if not user.is_authenticated:
-            return Response({"error": "User not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
-
-        # Retrieve all PlaidAccount entries for the user
         plaid_accounts = PlaidAccount.objects.filter(user=user)
 
         if not plaid_accounts.exists():
@@ -378,24 +403,26 @@ def get_accounts_and_transactions(request):
         all_accounts_data = []
         all_transactions_data = []
 
-        # Iterate over each linked Plaid account
         for plaid_account in plaid_accounts:
             access_token = plaid_account.access_token
 
-            # Fetch accounts for each access token
+            # Fetch accounts using access token
             accounts = get_accounts_from_plaid(access_token)
 
-            # Fetch transactions for each access token
+            # Define the start and end date for transactions (last 30 days)
             start_date = (datetime.now() - timedelta(days=30)).date()
             end_date = datetime.now().date()
+
+            # Fetch transactions using access token and date range
             transactions_request = TransactionsGetRequest(
                 access_token=access_token,
                 start_date=start_date,
                 end_date=end_date
             )
+
             transactions_response = plaid_client.transactions_get(transactions_request)
 
-            # Convert transactions for each account
+            # Parse transactions data
             transactions_data = [
                 {
                     "account_id": transaction.account_id,
@@ -409,10 +436,9 @@ def get_accounts_and_transactions(request):
                 for transaction in transactions_response['transactions']
             ]
 
-            # Convert accounts for each account
+            # Parse accounts data
             accounts_data = [
                 {
-                    "account_id": account.get('account_id'),
                     "name": account.get('name'),
                     "type": account.get('type'),
                     "subtype": account.get('subtype'),
@@ -421,16 +447,98 @@ def get_accounts_and_transactions(request):
                 for account in accounts.get('accounts', [])
             ]
 
-            # Append data from each PlaidAccount
+            # Add fetched data to results
             all_accounts_data.extend(accounts_data)
             all_transactions_data.extend(transactions_data)
 
+        # Return the aggregated accounts and transactions data
         return Response({
             'accounts': all_accounts_data,
             'transactions': all_transactions_data,
         }, status=status.HTTP_200_OK)
 
-    except PlaidAccount.DoesNotExist:
-        return Response({"error": "No Plaid account linked"}, status=status.HTTP_404_NOT_FOUND)
+    except ApiException as e:
+        # Safely handle Plaid API exceptions
+        try:
+            error_response = json.loads(e.body) # type: ignore
+            return Response({"error": f"Plaid API error: {error_response}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except json.JSONDecodeError:
+            return Response({"error": "Failed to parse error response from Plaid"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
+        # General exception handling
         return Response({"error": f"Error fetching accounts or transactions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reset_plaid_login(request):
+    try:
+        # Fetch the user's Plaid account
+        user = request.user
+        plaid_account = PlaidAccount.objects.filter(user=user).first()
+
+        if not plaid_account:
+            return Response({"error": "Access token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        access_token = plaid_account.access_token
+        print(access_token)
+
+        # Create the reset login request for sandbox
+        reset_login_request = SandboxItemResetLoginRequest(
+            access_token=access_token
+        )
+        print(reset_login_request, 'request')
+
+        # Call the Plaid API for resetting the login
+        try:
+            response = plaid_client.sandbox_item_reset_login(reset_login_request)
+            print(response, 'response from Plaid')
+
+            # Return success message if reset works
+            return Response({"message": "Login reset successfully", "reset_response": response.to_dict()}, status=status.HTTP_200_OK)
+
+        except ApiException as api_exception:
+            print(f"Plaid API error: {api_exception}")
+            return Response({"error": f"Plaid API error: {api_exception.body}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    except Exception as e:
+        print(f"General error: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def get_plaid_link_token(request):
+    try:
+        # Retrieve the user's Plaid account
+        user = request.user
+        plaid_account = PlaidAccount.objects.filter(user=user).first()
+
+        if not plaid_account:
+            return Response({"error": "No Plaid accounts linked"}, status=404)
+
+        # Check for ITEM_LOGIN_REQUIRED error and trigger update mode if needed
+        try:
+            accounts = get_accounts_from_plaid(plaid_account.access_token)
+        except ApiException as e:
+            error_response = json.loads(e.body)
+            if error_response.get("error_code") == "ITEM_LOGIN_REQUIRED":
+                # Create new link token with access_token for update mode
+                link_token_request = LinkTokenCreateRequest(
+                    user={'client_user_id': str(user.id)},
+                    client_name="Finance_Manager",
+                    country_codes=['US'],
+                    language='en',
+                    access_token=plaid_account.access_token  # Use the existing access_token for update mode
+                )
+                link_token_response = plaid_client.link_token_create(link_token_request)
+                return Response({'link_token': link_token_response['link_token'], 'action': 'update_link'}, status=status.HTTP_200_OK)
+            
+            return Response({"error": f"Plaid API error: {error_response}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"message": "Plaid account is valid"}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
