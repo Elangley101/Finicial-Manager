@@ -75,17 +75,18 @@ def exchange_public_token(public_token):
 @permission_classes([IsAuthenticated])
 def get_account_details(request, account_id):
     try:
-        # Get the user's PlaidAccount instance
-        plaid_account = PlaidAccount.objects.get(user=request.user, item_id=account_id)
-        
+        # Get the user's PlaidAccount instance using the user and item_id
+        plaid_account = PlaidAccount.objects.get(user=request.user)
+
         # Retrieve the access token from the PlaidAccount model
         access_token = plaid_account.access_token
-        
-        # Fetch account details from Plaid using the access token and account_id
+
+        # Fetch account details from Plaid using the access token
         accounts_request = AccountsGetRequest(access_token=access_token)
         accounts_response = plaid_client.accounts_get(accounts_request)
 
-        account = next((acc for acc in accounts_response['accounts'] if acc['item_id'] == account_id), None)
+        # Search for the specific account using account_id
+        account = next((acc for acc in accounts_response['accounts'] if acc['account_id'] == account_id), None)
 
         if account:
             return Response(account, status=200)
