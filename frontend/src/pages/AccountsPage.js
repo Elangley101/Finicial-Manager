@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './AccountsPage.css';  // Import your CSS file
+import '../css/AccountsPage.css';
 
 const AccountsPage = () => {
   const [accounts, setAccounts] = useState([]);
@@ -43,7 +43,7 @@ const AccountsPage = () => {
   const renderAccountDetails = () => {
     if (!selectedAccount) return <div>Select an account to view details</div>;
 
-    const { account_id, balances, mask, name, official_name, subtype, type } = selectedAccount;
+    const { account_id, balance, mask, name, official_name, subtype, type } = selectedAccount;
 
     // Filter the transactions related to the selected account
     const relatedTransactions = transactions.filter(transaction => transaction.account_id === account_id);
@@ -54,9 +54,8 @@ const AccountsPage = () => {
         <p>Official Name: {official_name || 'N/A'}</p>
         <p>Account Type: {type}</p>
         <p>Subtype: {subtype}</p>
-        <p>Balance: {balances?.current || 'Balance not available'}</p>
-        <p>Available Balance: {balances?.available || 'Not available'}</p>
-        <p>Account Mask: {mask}</p>
+        <p>Balance: {balance ? balance : 'Balance not available'}</p>
+        <p>Account Mask: {mask || 'N/A'}</p>
         <p>Account ID: {account_id}</p>
 
         {/* Render Transactions if available */}
@@ -99,7 +98,7 @@ const AccountsPage = () => {
               <h3>{account.name}</h3>
               <p>Type: {account.type}</p>
               <p>Subtype: {account.subtype}</p>
-              <p>Balance: {account.balances?.current || 'Balance not available'}</p>
+              <p>Balance: {account.balance ? account.balance : 'Balance not available'}</p>
             </div>
           ))}
         </div>

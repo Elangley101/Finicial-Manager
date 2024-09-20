@@ -17,6 +17,10 @@ from plaid import ApiClient, Configuration, Environment
 from plaid.model.transactions_get_request import TransactionsGetRequest 
 from plaid.model.investments_holdings_get_request import InvestmentsHoldingsGetRequest
 from plaid.model.investments_transactions_get_request import InvestmentsTransactionsGetRequest
+from plaid.model.plaid_error import PlaidError
+from plaid.exceptions import ApiException
+from plaid.model.transactions_sync_request import TransactionsSyncRequest
+import json
 # Load environment variables
 load_dotenv()
 
@@ -370,6 +374,7 @@ def get_accounts_and_transactions(request):
 
         all_accounts_data = []
         all_transactions_data = []
+        all_investment_data = []
 
         # Iterate over each linked Plaid account
         for plaid_account in plaid_accounts:
@@ -378,29 +383,42 @@ def get_accounts_and_transactions(request):
             # Fetch accounts for each access token
             accounts = get_accounts_from_plaid(access_token)
 
-            # Fetch transactions for each access token
-            start_date = (datetime.now() - timedelta(days=30)).date()
-            end_date = datetime.now().date()
-            transactions_request = TransactionsGetRequest(
-                access_token=access_token,
-                start_date=start_date,
-                end_date=end_date
-            )
-            transactions_response = plaid_client.transactions_get(transactions_request)
+            # Sync transactions with cursor handling
+            cursor = ""  # Set cursor to an empty string for the first time
+            has_more = True  # Continue fetching until no more transactions
 
-            # Convert transactions for each account
-            transactions_data = [
-                {
-                    "account_id": transaction.account_id,
-                    "amount": transaction.amount,
-                    "date": transaction.date,
-                    "name": transaction.name,
-                    "merchant_name": transaction.merchant_name,
-                    "category": transaction.category,
-                    "pending": transaction.pending
-                }
-                for transaction in transactions_response['transactions']
-            ]
+            while has_more:
+                try:
+                    # Fetch transactions using the sync endpoint
+                    transactions_sync_request = TransactionsSyncRequest(
+                        access_token=access_token,
+                        cursor=cursor  # Pass empty string if first time, otherwise last cursor
+                    )
+                    transactions_sync_response = plaid_client.transactions_sync(transactions_sync_request)
+
+                    # Update cursor for the next call
+                    cursor = transactions_sync_response.get('next_cursor')
+
+                    # Append fetched transactions
+                    transactions_data = [
+                        {
+                            "account_id": transaction.get('account_id'),
+                            "amount": transaction.get('amount'),
+                            "date": transaction.get('date'),
+                            "name": transaction.get('name'),
+                            "merchant_name": transaction.get('merchant_name'),
+                            "category": transaction.get('category'),
+                            "pending": transaction.get('pending')
+                        }
+                        for transaction in transactions_sync_response.get('added', [])
+                    ]
+                    all_transactions_data.extend(transactions_data)
+
+                    # Check if there are more transactions to fetch
+                    has_more = transactions_sync_response.get('has_more', False)
+
+                except ApiException as e:
+                    return Response({"error": f"Error syncing transactions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             # Convert accounts for each account
             accounts_data = [
@@ -414,16 +432,52 @@ def get_accounts_and_transactions(request):
                 for account in accounts.get('accounts', [])
             ]
 
+            # Log account details to ensure investment account types are present
+            print(f"Accounts retrieved: {accounts_data}")
+
+            # Fetch investment holdings for each access token (if supported)
+            try:
+                investments_request = InvestmentsHoldingsGetRequest(
+                    access_token=access_token
+                )
+                investments_response = plaid_client.investments_holdings_get(investments_request)
+
+                # Log the raw investments response
+                print(f"Raw investments response: {investments_response}")
+
+                # Convert investment holdings for each account
+                investments_data = [
+                    {
+                        "account_id": holding.get('account_id'),
+                        "security_id": holding.get('security_id'),
+                        "quantity": holding.get('quantity'),
+                        "market_value": holding.get('market_value'),
+                        "cost_basis": holding.get('cost_basis'),
+                    }
+                    for holding in investments_response['holdings']
+                ]
+                all_investment_data.extend(investments_data)
+
+            except ApiException as e:  # Handle the correct exception
+                error_message = str(e)
+
+                # Check for "PRODUCTS_NOT_SUPPORTED" in the error message
+                if "PRODUCTS_NOT_SUPPORTED" in error_message:
+                    print(f"Investments not supported for this institution: {plaid_account.institution_name}")
+                else:
+                    print(f"Error fetching investments: {error_message}")
+                    raise
+
             # Append data from each PlaidAccount
             all_accounts_data.extend(accounts_data)
-            all_transactions_data.extend(transactions_data)
 
         return Response({
             'accounts': all_accounts_data,
             'transactions': all_transactions_data,
+            'investments': all_investment_data,
         }, status=status.HTTP_200_OK)
 
     except PlaidAccount.DoesNotExist:
         return Response({"error": "No Plaid account linked"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({"error": f"Error fetching accounts or transactions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": f"Error fetching accounts, transactions, or investments: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

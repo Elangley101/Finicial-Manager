@@ -493,3 +493,11 @@ def get_accounts(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+class UserManualTransactionListView(generics.ListAPIView):
+    serializer_class = TransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Only return transactions that belong to the logged-in user
+        return Transaction.objects.filter(user=self.request.user)

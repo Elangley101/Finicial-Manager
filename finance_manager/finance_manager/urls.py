@@ -17,6 +17,7 @@ from .views import (
     SavingsAndGoalsView,
     create_link_token,
     get_accounts,
+    UserManualTransactionListView
     
 )
 
@@ -51,7 +52,7 @@ urlpatterns = [
     path('api/goals/', SavingsAndGoalsView.as_view(), name='goals'),
 
     path('api/exchange_public_token/', exchange_public_token_view, name='exchange_public_token'),
-
+    path('transactions/manual/', UserManualTransactionListView.as_view(), name='user-manual-transactions'),
     # URL for getting transactions (optional)
     path('api/get_transactions/', get_transactions_view, name='get_transactions'),
 

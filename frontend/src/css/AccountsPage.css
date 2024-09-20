@@ -1,59 +1,121 @@
-/* Flex container for sidebar and main content */
+/* Container for the whole page */
 .container {
   display: flex;
-  height: 100vh;  /* Full viewport height */
-  width: 100%;
+  flex-direction: row;
+  min-height: 100vh;
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f4;
+  padding: 20px;
 }
 
-/* Sidebar styling */
+/* Sidebar styles for accounts */
 .sidebar {
-  width: 20%;  /* Set the width of the sidebar */
-  background-color: #f7f7f7;
-  padding: 20px;
-  border-right: 1px solid #ccc;
-  box-sizing: border-box;
-  overflow-y: auto;  /* Enable scroll if needed */
-}
-
-/* Sidebar account item styling */
-.account-item {
-  padding: 10px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  width: 300px;
   background-color: #fff;
-  transition: background-color 0.3s;
-}
-
-.account-item:hover {
-  background-color: #f1f1f1;
-}
-
-.account-item.active {
-  background-color: #e0e0e0;
-  border-color: #bbb;
-}
-
-/* Main content styling */
-.main-content {
-  flex-grow: 1;  /* Take up remaining space */
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  box-sizing: border-box;
+  margin-right: 20px;
   overflow-y: auto;
 }
 
-/* Transactions list */
+.sidebar h2 {
+  font-size: 1.5rem;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+/* Each account item in the sidebar */
+.account-item {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.account-item h3 {
+  font-size: 1.2rem;
+  color: #333;
+  margin: 0;
+}
+
+.account-item p {
+  margin: 5px 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Active account item styles */
+.account-item.active {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+}
+
+.account-item.active h3,
+.account-item.active p {
+  color: white;
+}
+
+.account-item:hover {
+  background-color: #e0e0e0;
+}
+
+/* Main content area for account details and transactions */
+.main-content {
+  flex-grow: 1;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.main-content h2 {
+  font-size: 1.8rem;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.main-content p {
+  margin: 10px 0;
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Transaction list styles */
 .main-content ul {
-  list-style-type: none;
+  list-style: none;
   padding: 0;
 }
 
-.main-content li {
-  border-bottom: 1px solid #ccc;
-  padding: 10px 0;
+.main-content ul li {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
 }
 
-.main-content li:last-child {
-  border-bottom: none;
+.main-content ul li p {
+  margin: 5px 0;
+  color: #666;
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .main-content {
+    width: 100%;
+  }
 }
