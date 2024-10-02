@@ -433,7 +433,7 @@ def get_accounts_and_transactions(request):
             ]
 
             # Log account details to ensure investment account types are present
-            print(f"Accounts retrieved: {accounts_data}")
+
 
             # Fetch investment holdings for each access token (if supported)
             try:

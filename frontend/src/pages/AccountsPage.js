@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom'; // Import useLocation
 import '../css/AccountsPage.css';
 
 const AccountsPage = () => {
+  const location = useLocation(); // Get the location object
   const [accounts, setAccounts] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [selectedAccount, setSelectedAccount] = useState(location.state?.selectedAccount || null); // Access selectedAccount from location state
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -17,16 +19,15 @@ const AccountsPage = () => {
           return;
         }
 
-        // Fetch the user's linked accounts and transactions from the backend
         const response = await axios.get('http://localhost:8000/api/plaid/accounts', {
           headers: {
             Authorization: `Bearer ${token}`,  // Send access token
           },
         });
 
-        console.log('Full API Response:', response.data);  // Log the full API response for inspection
-        setAccounts(response.data.accounts || []);  // Set the accounts data or an empty array to prevent errors
-        setTransactions(response.data.transactions || []);  // Set the transactions data or an empty array
+        console.log('Full API Response:', response.data);  
+        setAccounts(response.data.accounts || []);  
+        setTransactions(response.data.transactions || []);  
       } catch (error) {
         setError('Failed to fetch accounts and transactions. Make sure the backend is running.');
         console.error('Error fetching accounts and transactions:', error);
@@ -36,16 +37,12 @@ const AccountsPage = () => {
     fetchAccountsAndTransactions();
   }, []);
 
-  const handleAccountClick = (account) => {
-    setSelectedAccount(account);  // Set the selected account when clicked
-  };
-
+  // Render account details based on selectedAccount
   const renderAccountDetails = () => {
     if (!selectedAccount) return <div>Select an account to view details</div>;
 
     const { account_id, balance, mask, name, official_name, subtype, type } = selectedAccount;
 
-    // Filter the transactions related to the selected account
     const relatedTransactions = transactions.filter(transaction => transaction.account_id === account_id);
 
     return (
@@ -58,7 +55,6 @@ const AccountsPage = () => {
         <p>Account Mask: {mask || 'N/A'}</p>
         <p>Account ID: {account_id}</p>
 
-        {/* Render Transactions if available */}
         {relatedTransactions.length > 0 && (
           <div>
             <h3>Transactions</h3>
@@ -79,21 +75,24 @@ const AccountsPage = () => {
     );
   };
 
+  const handleAccountClick = (account) => {
+    setSelectedAccount(account); // Update the selected account when clicked
+  };
+
   if (error) {
     return <div>{error}</div>;
   }
 
   return (
     <div className="container">
-      {/* Sidebar: List of accounts */}
       <div className="sidebar">
         <h2>Your Accounts</h2>
         <div>
           {accounts.map((account) => (
             <div 
-              key={account.account_id}  // Use account_id as the unique key
-              onClick={() => handleAccountClick(account)} // Handle click to fetch account details
-              className={`account-item ${selectedAccount?.account_id === account.account_id ? 'active' : ''}`}  // Highlight active account
+              key={account.account_id} 
+              className={`account-item ${selectedAccount?.account_id === account.account_id ? 'active' : ''}`}
+              onClick={() => handleAccountClick(account)} // Set selected account on click
             >
               <h3>{account.name}</h3>
               <p>Type: {account.type}</p>
@@ -104,9 +103,8 @@ const AccountsPage = () => {
         </div>
       </div>
 
-      {/* Main content: Account Details and Transactions */}
       <div className="main-content">
-        {renderAccountDetails()}
+        {renderAccountDetails()} {/* Render account details */}
       </div>
     </div>
   );

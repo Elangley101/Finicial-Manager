@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { Bar, Pie } from 'react-chartjs-2';
-import { Chart, registerables } from 'chart.js'; // Import Chart and registerables
+import { Pie } from 'react-chartjs-2';
+import { Chart, registerables } from 'chart.js'; 
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
 
@@ -9,17 +9,41 @@ Chart.register(...registerables);
 
 const ExpenseIncomeChart = () => {
     const [chartData, setChartData] = useState(null);
-    const { authTokens } = useContext(AuthContext); // Access the authTokens from the context
+    const { authTokens } = useContext(AuthContext);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get('http://localhost:8000/api/transaction-summary/', {
+                const response = await axios.get('http://localhost:8000/api/plaid/accounts', {
                     headers: {
-                        'Authorization': `Bearer ${authTokens.access}`, // Include the access token in the request
+                        'Authorization': `Bearer ${authTokens.access}`,
                     },
                 });
-                const { total_income, total_expense } = response.data;
+
+                const transactions = response.data.transactions; // Access the accounts array
+
+
+                let total_income = 0;
+                let total_expense = 0;
+
+                // Iterate over each account
+                transactions.forEach(account => {
+                    if (account.transactions) { // Check if transactions exist for the account
+                        account.transactions.forEach(transaction => {
+                            console.log('Transaction:', transaction); // Log each transaction to see its properties
+                            // If the transaction amount is positive, add to total income
+                            if (transaction.amount > 0) {
+                                total_income += transaction.amount;
+                            } else {
+                                // If the transaction amount is negative, add to total expense
+                                total_expense += Math.abs(transaction.amount); // Use absolute value for expenses
+                            }
+                        });
+                    }
+                });
+
+                console.log('Total Income:', total_income); // Log total income
+                console.log('Total Expense:', total_expense); // Log total expense
 
                 // Initialize chart data
                 const data = {
@@ -27,20 +51,21 @@ const ExpenseIncomeChart = () => {
                     datasets: [
                         {
                             label: 'Amount',
-                            data: [total_income || 0, total_expense || 0], // Ensure values are provided or default to 0
+                            data: [total_income, total_expense],
                             backgroundColor: ['#4caf50', '#f44336'],
                         },
                     ],
                 };
 
+                console.log('Chart Data:', data); // Log the chart data
                 setChartData(data);
             } catch (error) {
-                console.error('Error fetching transaction summary:', error);
+                console.error('Error fetching accounts:', error);
             }
         };
 
         fetchData();
-    }, [authTokens]); // Add authTokens as a dependency to re-fetch data when tokens change
+    }, [authTokens]);
 
     if (!chartData) {
         return <p>Loading chart data...</p>; // Loading state while data is being fetched
@@ -53,9 +78,13 @@ const ExpenseIncomeChart = () => {
                 data={chartData} 
                 options={{ 
                     responsive: true, 
-                    scales: {
-                        y: {
-                            beginAtZero: true
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Income vs Expense Chart'
                         }
                     }
                 }} 
