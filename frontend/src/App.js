@@ -15,8 +15,10 @@ import SignupPage from './pages/SignupPage';
 import LandingPage from './pages/LandingPage';
 import AccountsPage from './pages/AccountsPage';
 import SessionExpiredModal from './components/SessionExpiredModal';  // Import your modal
+import StarBackground from './components/StarBackground';
 
 const App = () => {
+  <StarBackground />  
   const [isSessionExpired, setIsSessionExpired] = useState(false);
   const navigate = useNavigate();  // Hook for programmatic navigation
 

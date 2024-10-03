@@ -11,3 +11,18 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.star-background {
+  position: fixed; /* Fixed position ensures it stays on the screen as you scroll */
+  top: 0;
+  left: 0;
+  width: 100vw;  /* Ensure it covers the full viewport */
+  height: 100vh; /* Full viewport height */
+  z-index: -1;  /* Set behind all other content */
+  pointer-events: none; /* Make sure it doesn't interfere with clicks */
+}
+
+.App {
+  position: relative;
+  z-index: 1; /* Ensure your main content is above the stars */
+}

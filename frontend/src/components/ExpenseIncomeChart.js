@@ -20,26 +20,21 @@ const ExpenseIncomeChart = () => {
                     },
                 });
 
-                const transactions = response.data.transactions; // Access the accounts array
-
-
+                const accounts = response.data.accounts; // Access the accounts array
                 let total_income = 0;
                 let total_expense = 0;
 
-                // Iterate over each account
-                transactions.forEach(account => {
-                    if (account.transactions) { // Check if transactions exist for the account
-                        account.transactions.forEach(transaction => {
-                            console.log('Transaction:', transaction); // Log each transaction to see its properties
-                            // If the transaction amount is positive, add to total income
-                            if (transaction.amount > 0) {
-                                total_income += transaction.amount;
-                            } else {
-                                // If the transaction amount is negative, add to total expense
-                                total_expense += Math.abs(transaction.amount); // Use absolute value for expenses
-                            }
-                        });
-                    }
+                // Iterate over each account to calculate total income and expenses
+                accounts.forEach(transaction => {
+                        if (transaction.amount > 0) {
+
+                            total_income += transaction.amount;
+                            console.log(total_income,'income')
+                        } else {
+
+                            total_expense += Math.abs(transaction.amount);
+                            console.log(total_expense,'expense')
+                        }
                 });
 
                 console.log('Total Income:', total_income); // Log total income
