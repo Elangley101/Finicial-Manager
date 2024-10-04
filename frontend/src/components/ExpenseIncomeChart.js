@@ -20,19 +20,21 @@ const ExpenseIncomeChart = () => {
                     },
                 });
 
-                const accounts = response.data.accounts; // Access the accounts array
+                const accounts = response.data.transactions; // Access the accounts array
                 let total_income = 0;
                 let total_expense = 0;
-
+                    
                 // Iterate over each account to calculate total income and expenses
                 accounts.forEach(transaction => {
                         if (transaction.amount > 0) {
 
                             total_income += transaction.amount;
+                            console.log(transaction.amount)
                             console.log(total_income,'income')
                         } else {
 
                             total_expense += Math.abs(transaction.amount);
+                            console.log(transaction.amount)
                             console.log(total_expense,'expense')
                         }
                 });

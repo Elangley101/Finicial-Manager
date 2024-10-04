@@ -1,12 +1,18 @@
+/* GoalSetting.css */
+
 .goal-setting {
-    background-color: #f8f9fa;
+    background-color: #f9f9f9;
     padding: 20px;
+    margin: 20px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .goal-setting h2 {
-    color: #343a40;
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333;
+    text-align: center;
 }
 
 .form-group {
@@ -15,26 +21,53 @@
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
-    color: #495057;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
 }
 
 .form-group input {
     width: 100%;
     padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 5px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #007bff;
 }
 
 .submit-btn {
-    padding: 10px 20px;
-    background-color: #28a745;
+    background-color: #007bff;
     color: white;
+    font-size: 16px;
+    padding: 10px 20px;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
     cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
 .submit-btn:hover {
-    background-color: #218838;
+    background-color: #0056b3;
+}
+
+ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+ul li {
+    background-color: #e9ecef;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+ul li:nth-child(even) {
+    background-color: #f1f3f5;
 }

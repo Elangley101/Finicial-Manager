@@ -416,9 +416,23 @@ def test_authentication(request):
         return Response({"user_id": request.user.id, "username": request.user.username})
     else:
         return Response({"error": "User is not authenticated"}, status=400)
+
+
+@api_view(['GET', 'POST'])
+def goal_list_create_view(request):
+    if request.method == 'GET':
+        # Return all goals (or filter based on the user)
+        goals = Goal.objects.all()
+        serializer = GoalSerializer(goals, many=True)
+        return Response(serializer.data)
     
-
-
+    elif request.method == 'POST':
+        # Create a new goal
+        serializer = GoalSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)  # If you want to associate with the logged-in user
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 def get_accounts_from_plaid(access_token):
@@ -501,3 +515,4 @@ class UserManualTransactionListView(generics.ListAPIView):
     def get_queryset(self):
         # Only return transactions that belong to the logged-in user
         return Transaction.objects.filter(user=self.request.user)
+    

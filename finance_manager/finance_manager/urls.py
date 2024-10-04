@@ -17,7 +17,8 @@ from .views import (
     SavingsAndGoalsView,
     create_link_token,
     get_accounts,
-    UserManualTransactionListView
+    UserManualTransactionListView,
+    goal_list_create_view
     
 )
 
@@ -46,10 +47,7 @@ urlpatterns = [
     path('register/', UserRegisterView.as_view(), name='register'),
     path('api/create_link_token/', create_link_token, name='create_link_token'),  # Add this line
     # Goals
-    path('api/goals/', GoalListView.as_view(), name='goal-list'),
-
     path('api/portfolio/', InvestmentPortfolioView.as_view(), name='investment_portfolio'),
-    path('api/goals/', SavingsAndGoalsView.as_view(), name='goals'),
 
     path('api/exchange_public_token/', exchange_public_token_view, name='exchange_public_token'),
     path('transactions/manual/', UserManualTransactionListView.as_view(), name='user-manual-transactions'),
@@ -77,6 +75,6 @@ urlpatterns = [
     path('api/plaid/401k/<str:account_id>/', get_401k_details, name='get_401k_details'),
 
     # Additional endpoints can be added here as needed..
-
+    path('api/goals/', goal_list_create_view, name='goal-list-create'),
 ]
 
