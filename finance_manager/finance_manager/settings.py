@@ -102,6 +102,8 @@ DATABASES = {
     }
 }
 
+ENVIRONMENT = PLAID_ENV
+
 # Password validation (Django's default)
 AUTH_PASSWORD_VALIDATORS = [
     {

@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions,get_account_details,get_investment_details,get_loan_details,get_credit_card_details,get_401k_details
+from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions,get_account_details,get_investment_details,get_loan_details,get_credit_card_details,get_401k_details,get_goal_account_balances
 from .views import (
     UserRegisterView,
     UserProfileView,
@@ -18,7 +18,8 @@ from .views import (
     create_link_token,
     get_accounts,
     UserManualTransactionListView,
-    goal_list_create_view
+    goal_list_create_view,
+    delete_goal
     
 )
 
@@ -76,5 +77,9 @@ urlpatterns = [
 
     # Additional endpoints can be added here as needed..
     path('api/goals/', goal_list_create_view, name='goal-list-create'),
+
+    path('api/goals/<int:goal_id>/', delete_goal, name='delete_goal'),  # URL for deleting a goal
+
+     path('api/goals/<int:goal_id>/account-balances/', get_goal_account_balances, name='get_goal_account_balances'),
 ]
 

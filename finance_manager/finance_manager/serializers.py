@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, UserProfile, AccountSettings, Transaction, Goal, PlaidAccount
+from .models import CustomUser, UserProfile, AccountSettings, Transaction, Goal, PlaidAccount,Account,GoalAssociatedAccounts
 
 # Serializer for CustomUser
 class UserSerializer(serializers.ModelSerializer):
@@ -82,12 +82,40 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = ['id', 'user', 'description', 'amount', 'date', 'transaction_type']
         read_only_fields = ['user']  # The user field will be automatically set in the view
-
+class AccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = ['id', 'institution_name', 'plaid_account_id', 'account_name', 'user']
 # Serializer for Goal
+
+class GoalAssociatedAccountsSerializer(serializers.ModelSerializer):
+    # If you want to display more details about the account, you can include a related field
+    account = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GoalAssociatedAccounts
+        fields = ['goal', 'bankaccount_id', 'account']
+
+    def get_account(self, obj):
+        # This method returns more details about the account if needed
+        account = Account.objects.filter(plaid_account_id=obj.bankaccount_id).first()
+        if account:
+            return {
+                'name': account.account_name,
+                'institution_name': account.institution_name,
+                'plaid_account_id': account.plaid_account_id,
+            }
+        return None
 class GoalSerializer(serializers.ModelSerializer):
+    associated_accounts = GoalAssociatedAccountsSerializer(source='goalassociatedaccounts_set', many=True, read_only=True)
+
     class Meta:
         model = Goal
-        fields = ['id', 'name', 'target_amount', 'current_amount', 'target_date']
+        fields = ['id', 'name', 'target_amount', 'current_amount', 'target_date', 'associated_accounts']
+
+
+
+
 class PlaidAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlaidAccount

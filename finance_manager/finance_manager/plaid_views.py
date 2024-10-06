@@ -4,7 +4,7 @@ from plaid.api import plaid_api
 from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 from plaid.model.accounts_get_request import AccountsGetRequest
-from .models import PlaidAccount
+from .models import PlaidAccount,Goal,GoalAssociatedAccounts
 from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
@@ -356,6 +356,7 @@ def get_transactions_view(request):
         return Response({"error": f"Error fetching transactions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # API View: Get both Accounts and Transactions
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_accounts_and_transactions(request):
@@ -432,41 +433,36 @@ def get_accounts_and_transactions(request):
                 for account in accounts.get('accounts', [])
             ]
 
-            # Log account details to ensure investment account types are present
+            # Fetch investment holdings only if in production environment
+            if settings.ENVIRONMENT == 'production':  # Check if the environment is production
+                try:
+                    investments_request = InvestmentsHoldingsGetRequest(
+                        access_token=access_token
+                    )
+                    investments_response = plaid_client.investments_holdings_get(investments_request)
 
+                    # Convert investment holdings for each account
+                    investments_data = [
+                        {
+                            "account_id": holding.get('account_id'),
+                            "security_id": holding.get('security_id'),
+                            "quantity": holding.get('quantity'),
+                            "market_value": holding.get('market_value'),
+                            "cost_basis": holding.get('cost_basis'),
+                        }
+                        for holding in investments_response['holdings']
+                    ]
+                    all_investment_data.extend(investments_data)
 
-            # Fetch investment holdings for each access token (if supported)
-            try:
-                investments_request = InvestmentsHoldingsGetRequest(
-                    access_token=access_token
-                )
-                investments_response = plaid_client.investments_holdings_get(investments_request)
+                except ApiException as e:  # Handle the correct exception
+                    error_message = str(e)
 
-                # Log the raw investments response
-                print(f"Raw investments response: {investments_response}")
-
-                # Convert investment holdings for each account
-                investments_data = [
-                    {
-                        "account_id": holding.get('account_id'),
-                        "security_id": holding.get('security_id'),
-                        "quantity": holding.get('quantity'),
-                        "market_value": holding.get('market_value'),
-                        "cost_basis": holding.get('cost_basis'),
-                    }
-                    for holding in investments_response['holdings']
-                ]
-                all_investment_data.extend(investments_data)
-
-            except ApiException as e:  # Handle the correct exception
-                error_message = str(e)
-
-                # Check for "PRODUCTS_NOT_SUPPORTED" in the error message
-                if "PRODUCTS_NOT_SUPPORTED" in error_message:
-                    print(f"Investments not supported for this institution: {plaid_account.institution_name}")
-                else:
-                    print(f"Error fetching investments: {error_message}")
-                    raise
+                    # Check for "PRODUCTS_NOT_SUPPORTED" in the error message
+                    if "PRODUCTS_NOT_SUPPORTED" in error_message:
+                        print(f"Investments not supported for this institution: {plaid_account.institution_name}")
+                    else:
+                        print(f"Error fetching investments: {error_message}")
+                        return Response({"error": f"Error fetching investments: {error_message}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             # Append data from each PlaidAccount
             all_accounts_data.extend(accounts_data)
@@ -481,3 +477,63 @@ def get_accounts_and_transactions(request):
         return Response({"error": "No Plaid account linked"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"error": f"Error fetching accounts, transactions, or investments: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_goal_account_balances(request, goal_id):
+    try:
+        user = request.user
+
+        # Fetch the goal and associated bank accounts
+        try:
+            goal = Goal.objects.get(id=goal_id, user=user)
+        except Goal.DoesNotExist:
+            return Response({"error": "Goal not found or doesn't belong to the user"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Fetch associated bank accounts from GoalAssociatedAccounts
+        associated_accounts = GoalAssociatedAccounts.objects.filter(goal=goal)
+
+        if not associated_accounts.exists():
+            return Response({"error": "No associated bank accounts for this goal"}, status=status.HTTP_404_NOT_FOUND)
+
+        all_accounts_data = []
+        total_balance = 0.0
+
+        # Iterate over associated accounts for the goal
+        for associated_account in associated_accounts:
+            bank_account_id = associated_account.bankaccount_id
+
+            # Fetch Plaid account using the `bankaccount_id` (stored in Plaid's API response as account_id)
+            plaid_account = PlaidAccount.objects.filter(user=user).first()  # Assume you get the right Plaid account for the user
+
+            if not plaid_account:
+                continue  # Skip if no Plaid account is found for the user
+
+            access_token = plaid_account.access_token
+
+            # Fetch accounts from Plaid
+            accounts_response = get_accounts_from_plaid(access_token)  # Assuming a utility function to fetch accounts
+
+            # Loop through accounts returned by the Plaid API
+            for account in accounts_response.get('accounts', []):
+                if account.get('account_id') == bank_account_id:  # Match Plaid account_id with bankaccount_id in GoalAssociatedAccounts
+                    account_balance = float(account.get('balances', {}).get('current', 0))
+                    total_balance += account_balance
+
+                    account_data = {
+                        "account_id": account.get('account_id'),
+                        "name": account.get('name'),
+                        "type": account.get('type'),
+                        "subtype": account.get('subtype'),
+                        "balance": account_balance
+                    }
+                    all_accounts_data.append(account_data)
+
+        # Return total balance and detailed account information
+        return Response({
+            'total_balance': total_balance,
+            'accounts': all_accounts_data,
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": f"Error fetching accounts or transactions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

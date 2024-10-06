@@ -12,7 +12,7 @@ from rest_framework.parsers import MultiPartParser
 import json
 import csv
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import CustomUser, Goal, Transaction, UserProfile, AccountSettings,Investment, Goal, BankAccount
+from .models import CustomUser, Goal, Transaction, UserProfile, AccountSettings,Investment, Goal, BankAccount,Account,GoalAssociatedAccounts
 from .serializers import UserSerializer, UserProfileSerializer, AccountSettingsSerializer, GoalSerializer, TransactionSerializer
 from django.db import transaction as db_transaction
 from django.contrib.auth import get_user_model
@@ -421,18 +421,57 @@ def test_authentication(request):
 @api_view(['GET', 'POST'])
 def goal_list_create_view(request):
     if request.method == 'GET':
-        # Return all goals (or filter based on the user)
-        goals = Goal.objects.all()
+        goals = Goal.objects.filter(user=request.user).prefetch_related('accounts')
         serializer = GoalSerializer(goals, many=True)
         return Response(serializer.data)
-    
+
     elif request.method == 'POST':
-        # Create a new goal
-        serializer = GoalSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=request.user)  # If you want to associate with the logged-in user
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        selected_accounts = request.data.get('accounts', [])
+        goal_serializer = GoalSerializer(data=request.data)
+        
+        if goal_serializer.is_valid():
+            goal = goal_serializer.save(user=request.user)
+
+            # Handle account associations with the goal
+            for plaid_account_id in selected_accounts:
+                try:
+                    # Log the plaid_account_id to ensure we're getting it correctly
+                    print(f"Attempting to associate account {plaid_account_id} with goal {goal.id}")
+
+                    # Fetch or create the Account using plaid_account_id
+                    account, created = Account.objects.get_or_create(
+                        plaid_account_id=plaid_account_id,
+                        user=request.user,
+                        defaults={
+                            'institution_name': 'Unknown',
+                            'account_name': 'Unnamed'
+                        }
+                    )
+
+                    # Now use account.id (the primary key) for the foreign key
+                    GoalAssociatedAccounts.objects.create(
+                        goal=goal,
+                        bankaccount_id=plaid_account_id,  
+                    )
+
+                except Exception as e:
+                    # Log detailed error information
+                    print(f"Error associating account {plaid_account_id} with goal: {str(e)}")
+                    return Response({"detail": f"Error associating account {plaid_account_id}: {str(e)}"},
+                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            return Response(goal_serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(goal_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['DELETE'])
+def delete_goal(request, goal_id):
+    try:
+        goal = Goal.objects.get(id=goal_id, user=request.user)  # Ensure the goal belongs to the authenticated user
+        goal.delete()
+        return Response({'message': 'Goal deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+    except Goal.DoesNotExist:
+        return Response({'error': 'Goal not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
 def get_accounts_from_plaid(access_token):

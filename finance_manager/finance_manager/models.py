@@ -107,22 +107,41 @@ class UserProfile(models.Model):
     def __str__(self):
         return self.user.email
 
-# Account Summary Model
-class AccountSummary(models.Model):
+class Account(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    total_balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    last_updated = models.DateTimeField(auto_now=True)
+    institution_name = models.CharField(max_length=255)
+    plaid_account_id = models.CharField(max_length=255)  # This is the account ID from the Plaid API
+    account_name = models.CharField(max_length=255)
 
-# Goal Model
+    def __str__(self):
+        return f"{self.account_name} ({self.institution_name})"
+
 class Goal(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     target_amount = models.DecimalField(max_digits=10, decimal_places=2)
     current_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     target_date = models.DateField()
+    accounts = models.ManyToManyField(Account, through='GoalAccount', related_name='goals')
 
     def __str__(self):
         return self.name
+
+class GoalAccount(models.Model):
+    goal = models.ForeignKey(Goal, on_delete=models.CASCADE)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Goal: {self.goal.name}, Account: {self.account.account_name}"
+    
+class GoalAssociatedAccounts(models.Model):
+    goal = models.ForeignKey(Goal, on_delete=models.CASCADE)
+    bankaccount_id = models.CharField(max_length=255)  # Change from ForeignKey to CharField
+
+
+    def __str__(self):
+        return f"Goal: {self.goal.name}, Account ID: {self.bankaccount_id}"
+
 
 # Investment Model
 class Investment(models.Model):
@@ -130,6 +149,7 @@ class Investment(models.Model):
     name = models.CharField(max_length=100)
     value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     growth = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.00'))
+
 
 # BankAccount Model
 class BankAccount(models.Model):
