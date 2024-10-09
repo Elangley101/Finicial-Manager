@@ -12,8 +12,8 @@ from rest_framework.parsers import MultiPartParser
 import json
 import csv
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import CustomUser, Goal, Transaction, UserProfile, AccountSettings,Investment, Goal, BankAccount,Account,GoalAssociatedAccounts
-from .serializers import UserSerializer, UserProfileSerializer, AccountSettingsSerializer, GoalSerializer, TransactionSerializer
+from .models import CustomUser, Goal, Transaction, UserProfile, AccountSettings,Investment, Goal, BankAccount,Account,GoalAssociatedAccounts, Budget
+from .serializers import UserSerializer, UserProfileSerializer, AccountSettingsSerializer, GoalSerializer, TransactionSerializer, BudgetSerializer
 from django.db import transaction as db_transaction
 from django.contrib.auth import get_user_model
 from datetime import datetime  
@@ -39,6 +39,7 @@ from datetime import datetime, timedelta
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from .insights import analyze_spending
 
 
 env_path = os.path.join(os.path.dirname(__file__), 'env.env')
@@ -555,3 +556,28 @@ class UserManualTransactionListView(generics.ListAPIView):
         # Only return transactions that belong to the logged-in user
         return Transaction.objects.filter(user=self.request.user)
     
+
+class BudgetListCreateView(generics.ListCreateAPIView):
+    serializer_class = BudgetSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Budget.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class BudgetDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = BudgetSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Budget.objects.filter(user=self.request.user)
+
+@api_view(['GET'])
+def get_insights(request):
+    if not request.user.is_authenticated:
+        return Response({"error": "User must be authenticated"}, status=400)
+
+    insights = analyze_spending(request.user)
+    return Response({"insights": insights})

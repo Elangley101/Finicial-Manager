@@ -127,6 +127,11 @@ class Goal(models.Model):
     def __str__(self):
         return self.name
 
+    def calculate_progress(self):
+        if self.target_amount > 0:
+            return (self.current_amount / self.target_amount) * 100
+        return 0
+
 class GoalAccount(models.Model):
     goal = models.ForeignKey(Goal, on_delete=models.CASCADE)
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
@@ -218,3 +223,12 @@ class AccountBalance(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.current_balance} {self.iso_currency_code}"
+
+class Budget(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    category = models.CharField(max_length=100)
+    allocated_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    spent_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+
+    def __str__(self):
+        return f"{self.category} - Allocated: {self.allocated_amount}, Spent: {self.spent_amount}"

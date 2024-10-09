@@ -29,6 +29,7 @@ const GoalSetting = () => {
             }
         };
 
+
         fetchPlaidData();
     }, [authTokens]);
 
@@ -61,6 +62,7 @@ const GoalSetting = () => {
             return;
         }
 
+
         // Log selected accounts for each goal
         console.log('Selected accounts for the goal:', selectedAccounts);
 
@@ -75,6 +77,7 @@ const GoalSetting = () => {
                     console.error(`Invalid or missing balance for account ${account.account_id}:`, account.balance);  // Log invalid balances
                     return acc;  // Skip invalid balances
                 }
+
 
                 return acc + accountBalance;  // Sum their balances
             }, 0);  // Sum their balances
@@ -193,5 +196,6 @@ const GoalSetting = () => {
         </div>
     );
 };
+
 
 export default GoalSetting;

@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions,get_account_details,get_investment_details,get_loan_details,get_credit_card_details,get_401k_details,get_goal_account_balances
+from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions,get_account_details,get_investment_details,get_loan_details,get_credit_card_details,get_401k_details,get_goal_account_balances,get_debt_accounts,get_debt_transactions
 from .views import (
     UserRegisterView,
     UserProfileView,
@@ -19,8 +19,11 @@ from .views import (
     get_accounts,
     UserManualTransactionListView,
     goal_list_create_view,
-    delete_goal
-    
+    delete_goal,
+    BudgetListCreateView,
+    BudgetDetailView,
+    get_insights,
+
 )
 
 urlpatterns = [
@@ -81,5 +84,10 @@ urlpatterns = [
     path('api/goals/<int:goal_id>/', delete_goal, name='delete_goal'),  # URL for deleting a goal
 
      path('api/goals/<int:goal_id>/account-balances/', get_goal_account_balances, name='get_goal_account_balances'),
+    path('api/budgets/', BudgetListCreateView.as_view(), name='budget-list-create'),
+    path('api/budgets/<int:pk>/', BudgetDetailView.as_view(), name='budget-detail'),
+    path('api/insights/', get_insights, name='get-insights'),
+    path('api/debt-accounts/', get_debt_accounts, name='get_debt_accounts'),
+    path('api/debt-transactions/', get_debt_transactions, name='get_debt_transactions'),
 ]
 

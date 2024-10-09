@@ -26,9 +26,10 @@ const GoalsOverview = () => {
                             <div className="progress-bar">
                                 <div 
                                     className="progress" 
-                                    style={{ width: `${(goal.current_amount / goal.target_amount) * 100}%` }}
+                                    style={{ width: `${goal.progress}%` }}
                                 ></div>
                             </div>
+                            <p>{goal.progress.toFixed(2)}% Complete</p>
                         </div>
                     ))
                 ) : (

@@ -1,36 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import axios from 'axios';
+import AuthContext from '../context/AuthContext';
 import './css/InvestmentPortfolio.css';
-import { Box, Grid, Paper, Typography } from '@mui/material';
-// Mock Data (Replace with real data from props or state)
-const investments = [
-    {
-        id: 1,
-        name: 'Apple Inc.',
-        type: 'Stock',
-        value: 12000,
-        performance: 5.6, // in percentage
-    },
-    {
-        id: 2,
-        name: 'Vanguard S&P 500 ETF',
-        type: 'ETF',
-        value: 8000,
-        performance: 3.2, // in percentage
-    },
-    {
-        id: 3,
-        name: 'Bitcoin',
-        type: 'Cryptocurrency',
-        value: 15000,
-        performance: 12.8, // in percentage
-    },
-];
 
 const InvestmentPortfolio = () => {
-    const totalValue = investments.reduce((acc, investment) => acc + investment.value, 0);
+    const [investments, setInvestments] = useState([]);
+    const { authTokens } = useContext(AuthContext);
+
+    useEffect(() => {
+        const fetchInvestments = async () => {
+            try {
+                const response = await axios.get('http://localhost:8000/api/investments/', {
+                    headers: {
+                        'Authorization': `Bearer ${authTokens.access}`,
+                    },
+                });
+                setInvestments(response.data);
+            } catch (error) {
+                console.error('Error fetching investments:', error);
+            }
+        };
+
+        fetchInvestments();
+    }, [authTokens]);
+
+    const totalValue = investments.reduce((acc, investment) => acc + investment.market_value, 0);
 
     return (
-        <Box sx={{ display: 'flex' }}>
         <div className="investment-portfolio">
             <h2>Investment Portfolio</h2>
             <div className="portfolio-summary">
@@ -39,16 +35,15 @@ const InvestmentPortfolio = () => {
             </div>
             <div className="investment-list">
                 {investments.map(investment => (
-                    <div key={investment.id} className="investment-item">
+                    <div key={investment.account_id} className="investment-item">
                         <h3>{investment.name}</h3>
                         <p>Type: {investment.type}</p>
-                        <p>Value: ${investment.value.toFixed(2)}</p>
+                        <p>Value: ${investment.market_value.toFixed(2)}</p>
                         <p>Performance: {investment.performance}%</p>
                     </div>
                 ))}
             </div>
         </div>
-    </Box>
     );
 };
 

@@ -47,7 +47,7 @@ const TransactionForm = () => {
                 type,
             }, {
                 headers: {
-                    'Authorization': `Bearer ${authTokens.access}`, // Include the access token in the request
+                  'Authorization': `Bearer ${authTokens.access}`, // Include the access token in the request
                 },
             });
             setSuccess('Transaction added successfully!');
@@ -61,6 +61,7 @@ const TransactionForm = () => {
             console.error('Error adding transaction:', error);
         }
     };
+
 
     return (
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
@@ -123,5 +124,6 @@ const TransactionForm = () => {
         </Box>
     );
 };
+
 
 export default TransactionForm;

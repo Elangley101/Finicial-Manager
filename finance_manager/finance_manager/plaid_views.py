@@ -21,6 +21,9 @@ from plaid.model.plaid_error import PlaidError
 from plaid.exceptions import ApiException
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
 import json
+from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
+from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
+
 # Load environment variables
 load_dotenv()
 
@@ -537,3 +540,56 @@ def get_goal_account_balances(request, goal_id):
 
     except Exception as e:
         return Response({"error": f"Error fetching accounts or transactions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_debt_accounts(request):
+    try:
+        # Get the user's PlaidAccount instance
+        plaid_account = PlaidAccount.objects.get(user=request.user)
+        access_token = plaid_account.access_token
+
+        # Fetch account balances
+        balance_request = AccountsBalanceGetRequest(access_token=access_token)
+        balance_response = plaid_client.accounts_balance_get(balance_request)
+
+        # Filter for debt-related accounts (e.g., credit cards, loans)
+        debt_accounts = [account for account in balance_response['accounts'] if account['type'] in ['credit', 'loan']]
+
+        return Response(debt_accounts, status=200)
+
+    except PlaidAccount.DoesNotExist:
+        return Response({"error": "No Plaid account found for this user."}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_debt_transactions(request):
+    try:
+        # Get the user's PlaidAccount instance
+        plaid_account = PlaidAccount.objects.get(user=request.user)
+        access_token = plaid_account.access_token
+
+        # Fetch transactions
+        start_date = (datetime.now() - timedelta(days=30)).date()  # Last 30 days
+        end_date = datetime.now().date()
+        options = TransactionsGetRequestOptions(count=100, offset=0)
+
+        transactions_request = TransactionsGetRequest(
+            access_token=access_token,
+            start_date=start_date,
+            end_date=end_date,
+            options=options
+        )
+        transactions_response = plaid_client.transactions_get(transactions_request)
+
+        # Filter transactions related to debt payments
+        debt_transactions = [transaction for transaction in transactions_response['transactions'] if 'payment' in transaction['category']]
+
+        return Response(debt_transactions, status=200)
+
+    except PlaidAccount.DoesNotExist:
+        return Response({"error": "No Plaid account found for this user."}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

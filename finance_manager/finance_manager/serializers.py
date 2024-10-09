@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, UserProfile, AccountSettings, Transaction, Goal, PlaidAccount,Account,GoalAssociatedAccounts
+from .models import CustomUser, UserProfile, AccountSettings, Transaction, Goal, PlaidAccount,Account,GoalAssociatedAccounts,Budget
 
 # Serializer for CustomUser
 class UserSerializer(serializers.ModelSerializer):
@@ -107,16 +107,23 @@ class GoalAssociatedAccountsSerializer(serializers.ModelSerializer):
             }
         return None
 class GoalSerializer(serializers.ModelSerializer):
+    progress = serializers.SerializerMethodField()
     associated_accounts = GoalAssociatedAccountsSerializer(source='goalassociatedaccounts_set', many=True, read_only=True)
 
     class Meta:
         model = Goal
-        fields = ['id', 'name', 'target_amount', 'current_amount', 'target_date', 'associated_accounts']
+        fields = ['id', 'name', 'target_amount', 'current_amount', 'target_date', 'progress', 'associated_accounts']
 
-
-
+    def get_progress(self, obj):
+        return obj.calculate_progress()
 
 class PlaidAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlaidAccount
         fields = ['id', 'user', 'access_token', 'item_id', 'institution_name']
+
+class BudgetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Budget
+        fields = ['id', 'user', 'category', 'allocated_amount', 'spent_amount']
+        read_only_fields = ['user']

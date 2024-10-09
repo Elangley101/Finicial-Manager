@@ -25,6 +25,9 @@ const Sidebar = () => {
                     </ListItemIcon>
                     <ListItemText primary="Dashboard" />
                 </ListItem>
+                <ListItem button component={Link} to="/budget">
+                    <ListItemText primary="Budget" />
+                </ListItem>
                 <ListItem button component={Link} to="/accounts">
                     <ListItemIcon>
                         <AccountBalanceIcon />
