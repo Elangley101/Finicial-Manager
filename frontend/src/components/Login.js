@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Box, Button, TextField, Typography, Paper } from '@mui/material';
 import AuthContext from '../context/AuthContext';
-import './css/Login.css'; // New CSS file for the Login component styles
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -21,33 +21,41 @@ const Login = () => {
     };
 
     return (
-        <div className="login-container">
-            <div className="login-card">
-                <h1 className="login-title">Login</h1>
-                <form onSubmit={handleSubmit} className="login-form">
-                    {error && <p className="error-message">{error}</p>}
-                    <div className="form-group">
-                        <label>Email:</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Password:</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <button type="submit" className="login-button">Login</button>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+            <Paper elevation={3} sx={{ p: 4, maxWidth: 400, width: '100%' }}>
+                <Typography variant="h4" component="h1" gutterBottom align="center">
+                    Login
+                </Typography>
+                <form onSubmit={handleSubmit}>
+                    {error && (
+                        <Typography variant="body2" color="error" align="center" gutterBottom>
+                            {error}
+                        </Typography>
+                    )}
+                    <TextField
+                        label="Email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        fullWidth
+                        required
+                        margin="normal"
+                    />
+                    <TextField
+                        label="Password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        fullWidth
+                        required
+                        margin="normal"
+                    />
+                    <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+                        Login
+                    </Button>
                 </form>
-            </div>
-        </div>
+            </Paper>
+        </Box>
     );
 };
 

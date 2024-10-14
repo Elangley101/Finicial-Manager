@@ -1,42 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import './css/GoalsOverview.css';
+import React, { useState, useEffect, useContext } from 'react';
+import { Box, Typography, LinearProgress, Paper } from '@mui/material';
+import axios from 'axios';
+import AuthContext from '../context/AuthContext'; // Ensure AuthContext is imported
+import './css/GoalsOverview.css'; // Ensure this path is correct
 
 const GoalsOverview = () => {
     const [goals, setGoals] = useState([]);
+    const { authTokens } = useContext(AuthContext); // Use AuthContext to get auth tokens
 
     useEffect(() => {
-        // Fetch goals from the backend API
-        fetch('/api/goals/')
-            .then(response => response.json())
-            .then(data => setGoals(data))
-            .catch(error => console.error('Error fetching goals:', error));
-    }, []);
+        const fetchGoals = async () => {
+            try {
+                const response = await axios.get('http://localhost:8000/api/goals/', {
+                    headers: {
+                        'Authorization': `Bearer ${authTokens.access}`, // Include auth token
+                    },
+                });
+                setGoals(response.data);
+            } catch (error) {
+                console.error('Error fetching goals:', error);
+            }
+        };
+
+        if (authTokens) {
+            fetchGoals();
+        }
+    }, [authTokens]);
 
     return (
-        <div className="goals-overview">
-            <h2>Goals Overview</h2>
-            <div className="goal-list">
+        <Box sx={{ p: 2 }}>
+            <Typography variant="h5" gutterBottom>
+                Goals Overview
+            </Typography>
+            <Box className="goal-list">
                 {goals.length > 0 ? (
-                    goals.map(goal => (
-                        <div key={goal.id} className="goal-item">
-                            <h3>{goal.name}</h3>
-                            <p>Target Amount: ${goal.target_amount.toFixed(2)}</p>
-                            <p>Current Amount: ${goal.current_amount.toFixed(2)}</p>
-                            <p>Target Date: {goal.target_date}</p>
-                            <div className="progress-bar">
-                                <div 
-                                    className="progress" 
-                                    style={{ width: `${goal.progress}%` }}
-                                ></div>
-                            </div>
-                            <p>{goal.progress.toFixed(2)}% Complete</p>
-                        </div>
-                    ))
+                    goals.map(goal => {
+                        const targetAmount = parseFloat(goal.target_amount) || 0;
+                        const currentAmount = parseFloat(goal.current_amount) || 0;
+                        const progress = parseFloat(goal.progress) || 0;
+
+                        return (
+                            <Paper key={goal.id} className="goal-item" sx={{ p: 2, mb: 2 }}>
+                                <Typography variant="h6">{goal.name}</Typography>
+                                <Typography variant="body2">
+                                    Target Amount: ${targetAmount.toFixed(2)}
+                                </Typography>
+                                <Typography variant="body2">
+                                    Current Amount: ${currentAmount.toFixed(2)}
+                                </Typography>
+                                <Typography variant="body2">
+                                    Target Date: {goal.target_date}
+                                </Typography>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={progress}
+                                    sx={{ mt: 1, mb: 1 }}
+                                />
+                                <Typography variant="body2" color="textSecondary">
+                                    {progress.toFixed(2)}% Complete
+                                </Typography>
+                            </Paper>
+                        );
+                    })
                 ) : (
-                    <p>No goals available.</p>
+                    <Typography>No goals available.</Typography>
                 )}
-            </div>
-        </div>
+            </Box>
+        </Box>
     );
 };
 

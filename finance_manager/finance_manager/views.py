@@ -42,7 +42,7 @@ from rest_framework import status
 from .insights import analyze_spending
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-import requests
+
 
 
 env_path = os.path.join(os.path.dirname(__file__), 'env.env')

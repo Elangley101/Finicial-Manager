@@ -5,24 +5,18 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { AuthProvider } from './context/AuthContext';
 import { BrowserRouter as Router } from 'react-router-dom';
-import { ThemeContextProvider } from '../src/context/ThemeProviderComponent';
-import { LanguageProvider } from '../src/context/LanguageContext';
-import StarBackground from './components/StarBackground';  // Import the component here
+import { ThemeProvider } from '@mui/material/styles';
+import theme from './theme'; // Import the custom theme
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <ThemeContextProvider>
-    <LanguageProvider>
-      <React.StrictMode>
-        {/* <StarBackground />  Add the starry background component here */}
-        <Router>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </Router>
-      </React.StrictMode>
-    </LanguageProvider>
-  </ThemeContextProvider>
+  <ThemeProvider theme={theme}>
+    <Router>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </Router>
+  </ThemeProvider>
 );
 
 reportWebVitals();

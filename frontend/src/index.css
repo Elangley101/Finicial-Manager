@@ -1,8 +1,8 @@
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Roboto', sans-serif;
+  background-color: #FFF5E1; /* Light warm background */
+  color: #333333; /* Dark text for contrast */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -25,4 +25,13 @@ code {
 .App {
   position: relative;
   z-index: 1; /* Ensure your main content is above the stars */
+}
+
+a {
+  color: #FF6F61; /* Primary color for links */
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }
