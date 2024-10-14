@@ -593,3 +593,97 @@ def get_debt_transactions(request):
         return Response({"error": "No Plaid account found for this user."}, status=404)
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_spending_insights(request):
+    try:
+        # Get the user's PlaidAccount instance
+        plaid_account = PlaidAccount.objects.get(user=request.user)
+        access_token = plaid_account.access_token
+
+        # Fetch transactions
+        start_date = (datetime.now() - timedelta(days=90)).date()  # Last 90 days
+        end_date = datetime.now().date()
+        options = TransactionsGetRequestOptions(count=500, offset=0)
+
+        transactions_request = TransactionsGetRequest(
+            access_token=access_token,
+            start_date=start_date,
+            end_date=end_date,
+            options=options
+        )
+        transactions_response = plaid_client.transactions_get(transactions_request)
+
+        # Process transactions to generate insights
+        transactions = transactions_response['transactions']
+        insights = analyze_spending(transactions)
+
+        return Response(insights, status=200)
+
+    except PlaidAccount.DoesNotExist:
+        return Response({"error": "No Plaid account found for this user."}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+def analyze_spending(transactions):
+    # Example analysis: categorize transactions and calculate totals
+    categories = {}
+    for transaction in transactions:
+        category = transaction['category'][0] if transaction['category'] else 'Uncategorized'
+        amount = transaction['amount']
+        if category in categories:
+            categories[category] += amount
+        else:
+            categories[category] = amount
+
+    # Convert to a list of dictionaries for easy JSON serialization
+    insights = [{'category': cat, 'total_spent': total} for cat, total in categories.items()]
+    return insights
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_investment_performance(request):
+    try:
+        # Get the user's PlaidAccount instance
+        plaid_account = PlaidAccount.objects.get(user=request.user)
+        access_token = plaid_account.access_token
+
+        # Fetch investment holdings
+        holdings_request = InvestmentsHoldingsGetRequest(access_token=access_token)
+        holdings_response = plaid_client.investments_holdings_get(holdings_request)
+
+        # Fetch investment transactions
+        start_date = (datetime.now() - timedelta(days=365)).date()  # Last year
+        end_date = datetime.now().date()
+        transactions_request = InvestmentsTransactionsGetRequest(
+            access_token=access_token,
+            start_date=start_date,
+            end_date=end_date
+        )
+        transactions_response = plaid_client.investments_transactions_get(transactions_request)
+
+        # Process data to generate performance insights
+        performance_insights = analyze_investment_performance(holdings_response['holdings'], transactions_response['investment_transactions'])
+
+        return Response(performance_insights, status=200)
+
+    except PlaidAccount.DoesNotExist:
+        return Response({"error": "No Plaid account found for this user."}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+def analyze_investment_performance(holdings, transactions):
+    # Example analysis: calculate total value and performance metrics
+    total_value = sum(holding['market_value'] for holding in holdings)
+    total_cost = sum(holding['cost_basis'] for holding in holdings)
+    roi = ((total_value - total_cost) / total_cost) * 100 if total_cost else 0
+
+    # Example insights
+    insights = {
+        'total_value': total_value,
+        'total_cost': total_cost,
+        'roi': roi,
+        'holdings': [{'name': holding['name'], 'market_value': holding['market_value']} for holding in holdings]
+    }
+    return insights

@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions,get_account_details,get_investment_details,get_loan_details,get_credit_card_details,get_401k_details,get_goal_account_balances,get_debt_accounts,get_debt_transactions
+from .plaid_views import exchange_public_token_view,get_transactions_view,fetch_accounts_view,get_accounts_and_transactions,get_account_details,get_investment_details,get_loan_details,get_credit_card_details,get_401k_details,get_goal_account_balances,get_debt_accounts,get_debt_transactions, get_spending_insights, get_investment_performance
 from .views import (
     UserRegisterView,
     UserProfileView,
@@ -23,7 +23,12 @@ from .views import (
     BudgetListCreateView,
     BudgetDetailView,
     get_insights,
-
+    get_credit_score,
+    get_bill_reminders,
+    get_goal_recommendations,
+    get_exchange_rates,
+    get_fraud_alerts,
+    get_tax_report
 )
 
 urlpatterns = [
@@ -89,5 +94,12 @@ urlpatterns = [
     path('api/insights/', get_insights, name='get-insights'),
     path('api/debt-accounts/', get_debt_accounts, name='get_debt_accounts'),
     path('api/debt-transactions/', get_debt_transactions, name='get_debt_transactions'),
+    path('api/spending-insights/', get_spending_insights, name='spending-insights'),
+    path('api/investment-performance/', get_investment_performance, name='investment-performance'),
+    path('api/credit-score/', get_credit_score, name='credit-score'),
+    path('api/bill-reminders/', get_bill_reminders, name='bill-reminders'),
+    path('api/goal-recommendations/', get_goal_recommendations, name='goal-recommendations'),
+    path('api/exchange-rates/', get_exchange_rates, name='exchange-rates'),
+    path('api/fraud-alerts/', get_fraud_alerts, name='fraud-alerts'),
+    path('api/tax-report/', get_tax_report, name='tax-report'),
 ]
-

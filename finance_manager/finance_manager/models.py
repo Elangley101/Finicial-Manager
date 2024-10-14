@@ -232,3 +232,33 @@ class Budget(models.Model):
 
     def __str__(self):
         return f"{self.category} - Allocated: {self.allocated_amount}, Spent: {self.spent_amount}"
+
+class BillReminder(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    due_date = models.DateField()
+    frequency = models.CharField(max_length=50)  # e.g., 'monthly', 'weekly'
+
+    def __str__(self):
+        return f"{self.name} - {self.due_date}"
+
+class FraudAlert(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    transaction_id = models.CharField(max_length=100)
+    description = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateTimeField()
+    is_resolved = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Fraud Alert for {self.user.username} - {self.description}"
+
+class TaxReport(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    year = models.IntegerField()
+    total_deductible = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Tax Report for {self.user.username} - {self.year}"

@@ -12,7 +12,7 @@ from rest_framework.parsers import MultiPartParser
 import json
 import csv
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import CustomUser, Goal, Transaction, UserProfile, AccountSettings,Investment, Goal, BankAccount,Account,GoalAssociatedAccounts, Budget
+from .models import CustomUser, Goal, Transaction, UserProfile, AccountSettings,Investment, Goal, BankAccount,Account,GoalAssociatedAccounts, Budget, BillReminder, FraudAlert, TaxReport
 from .serializers import UserSerializer, UserProfileSerializer, AccountSettingsSerializer, GoalSerializer, TransactionSerializer, BudgetSerializer
 from django.db import transaction as db_transaction
 from django.contrib.auth import get_user_model
@@ -40,6 +40,9 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .insights import analyze_spending
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+import requests
 
 
 env_path = os.path.join(os.path.dirname(__file__), 'env.env')
@@ -581,3 +584,171 @@ def get_insights(request):
 
     insights = analyze_spending(request.user)
     return Response({"insights": insights})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_credit_score(request):
+    try:
+        # Example API endpoint and headers (replace with actual API details)
+        api_url = "https://api.creditscoreprovider.com/score"
+        headers = {
+            'Authorization': f"Bearer {os.getenv('CREDIT_SCORE_API_KEY')}",
+            'Content-Type': 'application/json'
+        }
+
+        # Make a request to the credit score API
+        response = requests.get(api_url, headers=headers)
+
+        if response.status_code == 200:
+            credit_score_data = response.json()
+            return Response(credit_score_data, status=200)
+        else:
+            return Response({"error": "Failed to fetch credit score"}, status=response.status_code)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_bill_reminders(request):
+    try:
+        # Fetch recurring transactions (this is a simplified example)
+        recurring_transactions = identify_recurring_transactions(request.user)
+
+        # Update or create bill reminders based on recurring transactions
+        for transaction in recurring_transactions:
+            BillReminder.objects.update_or_create(
+                user=request.user,
+                name=transaction['name'],
+                defaults={
+                    'amount': transaction['amount'],
+                    'due_date': transaction['next_due_date'],
+                    'frequency': transaction['frequency']
+                }
+            )
+
+        # Fetch all bill reminders for the user
+        reminders = BillReminder.objects.filter(user=request.user)
+        reminders_data = [{'name': reminder.name, 'amount': reminder.amount, 'due_date': reminder.due_date, 'frequency': reminder.frequency} for reminder in reminders]
+
+        return Response(reminders_data, status=200)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+def identify_recurring_transactions(user):
+    # Placeholder function to identify recurring transactions
+    # In a real implementation, analyze transaction data to find recurring patterns
+    return [
+        {'name': 'Electricity Bill', 'amount': 100.00, 'next_due_date': datetime.now() + timedelta(days=30), 'frequency': 'monthly'},
+        {'name': 'Netflix Subscription', 'amount': 15.99, 'next_due_date': datetime.now() + timedelta(days=30), 'frequency': 'monthly'}
+    ]
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_goal_recommendations(request):
+    try:
+        # Analyze user transactions and savings to generate recommendations
+        recommendations = analyze_user_data_for_goals(request.user)
+
+        return Response(recommendations, status=200)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+def analyze_user_data_for_goals(user):
+    # Placeholder function to analyze user data and generate goal recommendations
+    # In a real implementation, analyze transaction and savings data
+    return [
+        {'goal': 'Emergency Fund', 'suggested_amount': 1000.00, 'reason': 'Based on your spending patterns, it is recommended to have an emergency fund.'},
+        {'goal': 'Vacation Savings', 'suggested_amount': 500.00, 'reason': 'Consider saving for a vacation based on your recent travel-related expenses.'}
+    ]
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_exchange_rates(request):
+    try:
+        # Example API endpoint and headers (replace with actual API details)
+        api_url = "https://api.exchangeratesapi.io/latest"
+        params = {
+            'access_key': os.getenv('CURRENCY_API_KEY'),
+            'base': 'USD'  # Base currency
+        }
+
+        # Make a request to the currency exchange API
+        response = requests.get(api_url, params=params)
+
+        if response.status_code == 200:
+            exchange_rates = response.json()
+            return Response(exchange_rates, status=200)
+        else:
+            return Response({"error": "Failed to fetch exchange rates"}, status=response.status_code)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_fraud_alerts(request):
+    try:
+        # Analyze transactions to detect potential fraud
+        detect_fraud(request.user)
+
+        # Fetch all fraud alerts for the user
+        alerts = FraudAlert.objects.filter(user=request.user, is_resolved=False)
+        alerts_data = [{'transaction_id': alert.transaction_id, 'description': alert.description, 'amount': alert.amount, 'date': alert.date} for alert in alerts]
+
+        return Response(alerts_data, status=200)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+def detect_fraud(user):
+    # Placeholder function to detect fraud
+    # In a real implementation, analyze transaction data for anomalies
+    transactions = Transaction.objects.filter(user=user, date__gte=datetime.now() - timedelta(days=30))
+    for transaction in transactions:
+        if transaction.amount > 1000:  # Example rule: flag transactions over $1000
+            FraudAlert.objects.get_or_create(
+                user=user,
+                transaction_id=transaction.id,
+                defaults={
+                    'description': transaction.description,
+                    'amount': transaction.amount,
+                    'date': transaction.date
+                }
+            )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_tax_report(request):
+    try:
+        # Analyze transactions to generate tax report
+        year = datetime.now().year
+        total_deductible = calculate_deductible_expenses(request.user, year)
+
+        # Create or update tax report
+        tax_report, created = TaxReport.objects.update_or_create(
+            user=request.user,
+            year=year,
+            defaults={'total_deductible': total_deductible}
+        )
+
+        report_data = {
+            'year': tax_report.year,
+            'total_deductible': tax_report.total_deductible,
+            'created_at': tax_report.created_at
+        }
+
+        return Response(report_data, status=200)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+def calculate_deductible_expenses(user, year):
+    # Placeholder function to calculate deductible expenses
+    # In a real implementation, analyze transaction data for deductible categories
+    transactions = Transaction.objects.filter(user=user, date__year=year)
+    deductible_categories = ['Charity', 'Business', 'Medical']
+    total_deductible = sum(transaction.amount for transaction in transactions if transaction.category in deductible_categories)
+    return total_deductible
