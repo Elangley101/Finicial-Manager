@@ -7,13 +7,16 @@ import { AuthProvider } from './context/AuthContext';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import theme from './theme'; // Import the custom theme
+import { LanguageProvider } from './context/LanguageProvider'; // Ensure correct import
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <ThemeProvider theme={theme}>
     <Router>
       <AuthProvider>
-        <App />
+        <LanguageProvider>
+          <App />
+        </LanguageProvider>
       </AuthProvider>
     </Router>
   </ThemeProvider>

@@ -3,11 +3,11 @@ import { Box, Typography, LinearProgress, Paper } from '@mui/material';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext'; // Ensure AuthContext is imported
 import './css/GoalsOverview.css'; // Ensure this path is correct
-    const [goals, setGoals] = useState([]);
+
 const GoalsOverview = () => {
     const [goals, setGoals] = useState([]);
     const { authTokens } = useContext(AuthContext); // Use AuthContext to get auth tokens
-        fetch('/api/goals/')
+
     useEffect(() => {
         const fetchGoals = async () => {
             try {
@@ -21,12 +21,12 @@ const GoalsOverview = () => {
                 console.error('Error fetching goals:', error);
             }
         };
-                            <p>Target Amount: ${goal.target_amount.toFixed(2)}</p>
+
         if (authTokens) {
             fetchGoals();
         }
     }, [authTokens]);
-                                    className="progress" 
+
     return (
         <Box sx={{ p: 2 }}>
             <Typography variant="h5" gutterBottom>
@@ -37,7 +37,7 @@ const GoalsOverview = () => {
                     goals.map(goal => {
                         const targetAmount = parseFloat(goal.target_amount) || 0;
                         const currentAmount = parseFloat(goal.current_amount) || 0;
-                        const progress = parseFloat(goal.progress) || 0;
+                        const progress = (currentAmount / targetAmount) * 100 || 0;
 
                         return (
                             <Paper key={goal.id} className="goal-item" sx={{ p: 2, mb: 2 }}>
@@ -69,6 +69,5 @@ const GoalsOverview = () => {
         </Box>
     );
 };
-
 
 export default GoalsOverview;

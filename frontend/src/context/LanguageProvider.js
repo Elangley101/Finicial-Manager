@@ -1,20 +1,19 @@
+// LanguageContext.js
 import React, { createContext, useState, useEffect } from 'react';
 
-// Create the LanguageContext
-export const LanguageContext = createContext();
+const LanguageContext = createContext();
 
-// Create the LanguageProvider component
 export const LanguageProvider = ({ children }) => {
-    const [language, setLanguage] = useState('en'); // Default language is English
+    const [language, setLanguage] = useState('en');
 
-    // Load the saved language from local storage when the component mounts
     useEffect(() => {
+        // Load saved language from local storage
         const savedLanguage = localStorage.getItem('language') || 'en';
         setLanguage(savedLanguage);
     }, []);
 
-    // Save the selected language to local storage whenever it changes
     useEffect(() => {
+        // Save the selected language to local storage
         localStorage.setItem('language', language);
     }, [language]);
 

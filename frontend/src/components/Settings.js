@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import Sidebar from './Sidebar';
-import { Box, Container } from '@mui/material';
+import { Box, Container, Typography, Paper } from '@mui/material';
 import DataManagementSettings from './DataManagementSettings';
 import AccessibilitySettings from './AccessibilitySettings';
-import PersonalizationSettings from './PersonalizationSettings'; // Ensure this is the correct path
-import LinkPlaid from './LinkPlaid'; // Import the LinkPlaid component
+import PersonalizationSettings from './PersonalizationSettings';
+import LinkPlaid from './LinkPlaid';
+import { LanguageContext } from '../context/LanguageContext';
+import { ThemeContext } from '../context/ThemeProviderComponent';
 
 const Settings = () => {
+    const { language, setLanguage } = useContext(LanguageContext);
+    const { toggleTheme } = useContext(ThemeContext);
+
     const handlePlaidSuccess = (public_token, metadata) => {
         // Handle the successful connection, typically by sending the public_token to your backend
         console.log('Plaid public_token:', public_token);
@@ -18,14 +23,37 @@ const Settings = () => {
             <Sidebar />
             <Box flexGrow={1} p={3}>
                 <Container maxWidth="md">
-                    <DataManagementSettings />
-
-                    <AccessibilitySettings />
-                    {/* Include the LinkPlaid component for bank connection */}
-                    <Box mt={4}>
-                        <h3>Bank Connection</h3>
+                    <Typography variant="h4" gutterBottom>
+                        Settings
+                    </Typography>
+                    <Paper elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
+                        <Typography variant="h6" gutterBottom>
+                            Data Management
+                        </Typography>
+                        <DataManagementSettings />
+                    </Paper>
+                    <Paper elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
+                        <Typography variant="h6" gutterBottom>
+                            Accessibility
+                        </Typography>
+                        <AccessibilitySettings />
+                    </Paper>
+                    <Paper elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
+                        <Typography variant="h6" gutterBottom>
+                            Personalization
+                        </Typography>
+                        <PersonalizationSettings
+                            language={language}
+                            setLanguage={setLanguage}
+                            toggleTheme={toggleTheme}
+                        />
+                    </Paper>
+                    <Paper elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
+                        <Typography variant="h6" gutterBottom>
+                            Bank Connection
+                        </Typography>
                         <LinkPlaid onSuccess={handlePlaidSuccess} />
-                    </Box>
+                    </Paper>
                 </Container>
             </Box>
         </Box>

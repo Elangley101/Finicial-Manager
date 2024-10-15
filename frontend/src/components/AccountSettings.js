@@ -2,11 +2,11 @@ import React, { useState, useEffect, useContext } from 'react';
 import { TextField, Button, Switch, FormControlLabel, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
 import { ThemeContext } from '../context/ThemeProviderComponent';
 import AuthContext from '../context/AuthContext';
-import LanguageContext from '../context/LanguageContext'; // Import LanguageContext
+import LanguageContext from '../context/LanguageContext';
 
 const AccountSettings = ({ userData }) => {
     const { toggleTheme } = useContext(ThemeContext);
-    const { setLanguage } = useContext(LanguageContext); // Access the setLanguage function from the context
+    const { setLanguage } = useContext(LanguageContext);
     const { authTokens } = useContext(AuthContext);
     const [settingsData, setSettingsData] = useState({
         notify_transactions: true,
@@ -21,7 +21,7 @@ const AccountSettings = ({ userData }) => {
                 theme: userData.account_settings.theme,
                 language: userData.account_settings.language,
             });
-            toggleTheme(userData.account_settings.theme); // Apply the theme based on user data
+            toggleTheme(userData.account_settings.theme);
             setLanguage(userData.account_settings.language);
         }
     }, [userData, toggleTheme, setLanguage]);
@@ -40,7 +40,7 @@ const AccountSettings = ({ userData }) => {
                 ...settingsData,
                 language: value,
             });
-            setLanguage(value); // Update the global language
+            setLanguage(value);
         } else {
             setSettingsData({
                 ...settingsData,
