@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import CircularProgress from '@mui/material/CircularProgress';
 import AuthContext from '../context/AuthContext';
 
 const FraudAlerts = () => {
     const [alerts, setAlerts] = useState([]);
+    const [loading, setLoading] = useState(true);
     const { authTokens } = useContext(AuthContext);
 
     useEffect(() => {
@@ -17,11 +19,15 @@ const FraudAlerts = () => {
                 setAlerts(response.data);
             } catch (error) {
                 console.error('Error fetching fraud alerts:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchAlerts();
     }, [authTokens]);
+
+    if (loading) return <CircularProgress />;
 
     return (
         <div className="fraud-alerts">
@@ -40,4 +46,3 @@ const FraudAlerts = () => {
 };
 
 export default FraudAlerts;
-

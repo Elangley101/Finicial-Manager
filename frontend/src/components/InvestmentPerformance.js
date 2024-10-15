@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import CircularProgress from '@mui/material/CircularProgress';
 import AuthContext from '../context/AuthContext';
 
 const InvestmentPerformance = () => {
     const [performance, setPerformance] = useState(null);
+    const [loading, setLoading] = useState(true);
     const { authTokens } = useContext(AuthContext);
 
     useEffect(() => {
@@ -17,13 +19,17 @@ const InvestmentPerformance = () => {
                 setPerformance(response.data);
             } catch (error) {
                 console.error('Error fetching investment performance:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchPerformance();
     }, [authTokens]);
 
-    if (!performance) return <div>Loading...</div>;
+    if (loading) return <CircularProgress />;
+
+    if (!performance) return <div>No performance data available.</div>;
 
     return (
         <div className="investment-performance">
@@ -44,4 +50,3 @@ const InvestmentPerformance = () => {
 };
 
 export default InvestmentPerformance;
-

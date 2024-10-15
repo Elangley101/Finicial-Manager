@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import CircularProgress from '@mui/material/CircularProgress';
 import AuthContext from '../context/AuthContext';
 
 const CreditScore = () => {
     const [creditScore, setCreditScore] = useState(null);
+    const [loading, setLoading] = useState(true);
     const { authTokens } = useContext(AuthContext);
 
     useEffect(() => {
@@ -17,13 +19,17 @@ const CreditScore = () => {
                 setCreditScore(response.data);
             } catch (error) {
                 console.error('Error fetching credit score:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchCreditScore();
     }, [authTokens]);
 
-    if (!creditScore) return <div>Loading...</div>;
+    if (loading) return <CircularProgress />;
+
+    if (!creditScore) return <div>No credit score data available.</div>;
 
     return (
         <div className="credit-score">
@@ -36,4 +42,3 @@ const CreditScore = () => {
 };
 
 export default CreditScore;
-

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { Pie } from 'react-chartjs-2';
 import { Chart, registerables } from 'chart.js'; 
 import axios from 'axios';
+import CircularProgress from '@mui/material/CircularProgress';
 import AuthContext from '../context/AuthContext';
 
 // Register all necessary Chart.js components
@@ -9,6 +10,7 @@ Chart.register(...registerables);
 
 const ExpenseIncomeChart = () => {
     const [chartData, setChartData] = useState(null);
+    const [loading, setLoading] = useState(true);
     const { authTokens } = useContext(AuthContext);
 
     useEffect(() => {
@@ -19,7 +21,6 @@ const ExpenseIncomeChart = () => {
                         'Authorization': `Bearer ${authTokens.access}`,
                     },
                 });
-
                 const accounts = response.data.transactions; // Access the accounts array
                 let total_income = 0;
                 let total_expense = 0;
@@ -27,15 +28,9 @@ const ExpenseIncomeChart = () => {
                 // Iterate over each account to calculate total income and expenses
                 accounts.forEach(transaction => {
                         if (transaction.amount > 0) {
-
                             total_income += transaction.amount;
-                            console.log(transaction.amount)
-                            console.log(total_income,'income')
                         } else {
-
                             total_expense += Math.abs(transaction.amount);
-                            console.log(transaction.amount)
-                            console.log(total_expense,'expense')
                         }
                 });
 
@@ -58,14 +53,16 @@ const ExpenseIncomeChart = () => {
                 setChartData(data);
             } catch (error) {
                 console.error('Error fetching accounts:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchData();
     }, [authTokens]);
 
-    if (!chartData) {
-        return <p>Loading chart data...</p>; // Loading state while data is being fetched
+    if (loading) {
+        return <CircularProgress />; // Loading spinner while data is being fetched
     }
 
     return (

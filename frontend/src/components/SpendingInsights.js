@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import CircularProgress from '@mui/material/CircularProgress';
 import AuthContext from '../context/AuthContext';
 
 const SpendingInsights = () => {
     const [insights, setInsights] = useState([]);
+    const [loading, setLoading] = useState(true);
     const { authTokens } = useContext(AuthContext);
 
     useEffect(() => {
@@ -17,11 +19,15 @@ const SpendingInsights = () => {
                 setInsights(response.data);
             } catch (error) {
                 console.error('Error fetching spending insights:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchInsights();
     }, [authTokens]);
+
+    if (loading) return <CircularProgress />;
 
     return (
         <div className="spending-insights">
@@ -39,4 +45,3 @@ const SpendingInsights = () => {
 };
 
 export default SpendingInsights;
-

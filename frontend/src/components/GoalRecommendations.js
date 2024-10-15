@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import CircularProgress from '@mui/material/CircularProgress';
 import AuthContext from '../context/AuthContext';
 
 const GoalRecommendations = () => {
     const [recommendations, setRecommendations] = useState([]);
+    const [loading, setLoading] = useState(true);
     const { authTokens } = useContext(AuthContext);
 
     useEffect(() => {
@@ -17,11 +19,15 @@ const GoalRecommendations = () => {
                 setRecommendations(response.data);
             } catch (error) {
                 console.error('Error fetching goal recommendations:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchRecommendations();
     }, [authTokens]);
+
+    if (loading) return <CircularProgress />;
 
     return (
         <div className="goal-recommendations">
@@ -40,4 +46,3 @@ const GoalRecommendations = () => {
 };
 
 export default GoalRecommendations;
-

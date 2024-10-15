@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Box, Typography, Paper, LinearProgress, Button } from '@mui/material';
+import { Box, Typography, Paper, LinearProgress, Button, CircularProgress } from '@mui/material';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext'; // Assuming you have an AuthContext for authentication
 
@@ -65,7 +65,7 @@ const SavingsAndGoalsTracking = () => {
     };
 
     if (loading) {
-        return <Typography variant="body1">Loading goals...</Typography>;
+        return <CircularProgress />;
     }
 
     if (error) {
@@ -82,7 +82,6 @@ const SavingsAndGoalsTracking = () => {
                     const savedAmount = parseFloat(goal.total_balance) || 0;
                     const targetAmount = parseFloat(goal.target_amount) || 0;
                     const progress = targetAmount > 0 ? (savedAmount / targetAmount) * 100 : 0;
-
                     return (
                         <Box key={goal.id} mb={2}>
                             <Typography variant="subtitle1">{goal.name} (Goal: ${targetAmount.toFixed(2)})</Typography>
@@ -115,9 +114,7 @@ const SavingsAndGoalsTracking = () => {
                     );
                 })
             ) : (
-                <Typography variant="body2" color="textSecondary">
-                    No goals found. Please add a goal to track your progress.
-                </Typography>
+                <Typography variant="body1">No goals available.</Typography>
             )}
         </Paper>
     );
