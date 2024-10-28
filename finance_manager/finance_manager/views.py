@@ -237,14 +237,14 @@ class CSVUploadView(APIView):
             return Response({'error': f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# Account Settings View
-class AccountSettingsView(generics.RetrieveUpdateAPIView):
-    queryset = AccountSettings.objects.all()
-    serializer_class = AccountSettingsSerializer
-    permission_classes = [IsAuthenticated]
+# # Account Settings View
+# class AccountSettingsView(generics.RetrieveUpdateAPIView):
+#     queryset = AccountSettings.objects.all()
+#     serializer_class = AccountSettingsSerializer
+#     permission_classes = [IsAuthenticated]
 
-    def get_object(self):
-        return self.request.user.accountsettings
+#     def get_object(self):
+#         return self.request.user.accountsettings
 
 # Password Reset View
 class PasswordResetView(generics.UpdateAPIView):

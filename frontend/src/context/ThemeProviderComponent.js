@@ -11,8 +11,8 @@ export const ThemeContextProvider = ({ children }) => {
         setThemeMode(savedTheme);
     }, []);
 
-    const toggleTheme = (mode) => {
-        const newTheme = mode === 'dark' ? 'dark' : 'light';
+    const toggleTheme = () => {
+        const newTheme = themeMode === 'dark' ? 'light' : 'dark';
         setThemeMode(newTheme);
         localStorage.setItem('theme', newTheme);
     };

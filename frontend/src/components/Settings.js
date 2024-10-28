@@ -13,9 +13,9 @@ const Settings = () => {
     const { toggleTheme } = useContext(ThemeContext);
 
     const handlePlaidSuccess = (public_token, metadata) => {
-        // Handle the successful connection, typically by sending the public_token to your backend
         console.log('Plaid public_token:', public_token);
         console.log('Plaid metadata:', metadata);
+        // Handle successful Plaid connection here
     };
 
     return (
@@ -42,11 +42,7 @@ const Settings = () => {
                         <Typography variant="h6" gutterBottom>
                             Personalization
                         </Typography>
-                        <PersonalizationSettings
-                            language={language}
-                            setLanguage={setLanguage}
-                            toggleTheme={toggleTheme}
-                        />
+                        <PersonalizationSettings />
                     </Paper>
                     <Paper elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
                         <Typography variant="h6" gutterBottom>

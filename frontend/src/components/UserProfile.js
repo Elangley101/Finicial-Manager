@@ -14,8 +14,6 @@ const UserProfile = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    console.log('Auth Tokens:', authTokens); // Log the tokens to see if they are available
-
     const fetchUserData = async () => {
       if (!authTokens) {
         setError('User not authenticated');
@@ -31,12 +29,7 @@ const UserProfile = () => {
         });
         setUserData(response.data);
       } catch (err) {
-        if (err.response && err.response.status === 401) {
-          setError('User not authenticated');
-        } else {
-          setError('Failed to fetch user data');
-        }
-        console.error('Error fetching user data:', err);
+        setError('Failed to fetch user data');
       } finally {
         setLoading(false);
       }
@@ -46,7 +39,6 @@ const UserProfile = () => {
   }, [authTokens]);
 
   if (loading) return <CircularProgress />;
-
   if (error) return <Typography color="error">{error}</Typography>;
 
   return (
@@ -60,10 +52,13 @@ const UserProfile = () => {
           <PersonalInformation userData={userData} />
         </Paper>
         <Paper elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
-          <AccountSettings userData={userData} />
+          {/* <AccountSettings userData={userData} /> */}
         </Paper>
         <Paper elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
           <PasswordReset />
+        </Paper>
+        <Paper elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
+          <AccountSettings userData={userData} />
         </Paper>
       </Box>
     </Box>

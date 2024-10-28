@@ -1,141 +1,45 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { TextField, Button, Switch, FormControlLabel, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
-import { ThemeContext } from '../context/ThemeProviderComponent';
-import AuthContext from '../context/AuthContext';
-import LanguageContext from '../context/LanguageContext';
+import React, { useContext, useEffect } from 'react';
+import { LanguageContext } from '../context/LanguageContext';
 
 const AccountSettings = ({ userData }) => {
-    const { toggleTheme } = useContext(ThemeContext);
-    const { setLanguage } = useContext(LanguageContext);
-    const { authTokens } = useContext(AuthContext);
-    const [settingsData, setSettingsData] = useState({
-        notify_transactions: true,
-        theme: 'light',
-        language: 'en',
-    });
+    const { language, setLanguage } = useContext(LanguageContext);
 
     useEffect(() => {
-        if (userData && userData.account_settings) {
-            setSettingsData({
-                notify_transactions: userData.account_settings.notify_transactions,
-                theme: userData.account_settings.theme,
-                language: userData.account_settings.language,
-            });
-            toggleTheme(userData.account_settings.theme);
-            setLanguage(userData.account_settings.language);
-        }
-    }, [userData, toggleTheme, setLanguage]);
+        console.log('Language changed:', language);
+    }, [language]);
 
-    const handleChange = (e) => {
-        const { name, checked, value } = e.target;
-        if (name === 'theme') {
-            const newTheme = checked ? 'dark' : 'light';
-            setSettingsData({
-                ...settingsData,
-                theme: newTheme,
-            });
-            toggleTheme(newTheme);
-        } else if (name === 'language') {
-            setSettingsData({
-                ...settingsData,
-                language: value,
-            });
-            setLanguage(value);
-        } else {
-            setSettingsData({
-                ...settingsData,
-                [name]: e.target.type === 'checkbox' ? checked : e.target.value,
-            });
-        }
+    const handleLanguageChange = (event) => {
+        setLanguage(event.target.value);
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    if (!userData) {
+        return <div>No user data available</div>;
+    }
 
-        try {
-            let response = await fetch('http://localhost:8000/api/users/account-settings/', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authTokens.access}`,
-                },
-                body: JSON.stringify(settingsData),
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    const refreshResponse = await fetch('http://localhost:8000/api/token/refresh/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ refresh: authTokens.refresh }),
-                    });
-
-                    if (!refreshResponse.ok) {
-                        throw new Error('Failed to refresh token');
-                    }
-
-                    const refreshData = await refreshResponse.json();
-                    localStorage.setItem('access_token', refreshData.access);
-
-                    response = await fetch('http://localhost:8000/api/users/account-settings/', {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${refreshData.access}`,
-                        },
-                        body: JSON.stringify(settingsData),
-                    });
-                } else {
-                    throw new Error('Failed to update account settings');
-                }
-            }
-
-            const data = await response.json();
-            console.log('Account settings updated:', data);
-        } catch (error) {
-            console.error('Error updating account settings:', error);
-        }
-    };
+    const { email, first_name, last_name } = userData;
 
     return (
-        <form onSubmit={handleSubmit}>
-            <FormControlLabel
-                control={
-                    <Switch
-                        checked={settingsData.theme === 'dark'}
-                        onChange={handleChange}
-                        name="theme"
-                    />
-                }
-                label="Dark Mode"
-            />
-            <FormControlLabel
-                control={
-                    <Switch
-                        checked={settingsData.notify_transactions}
-                        onChange={handleChange}
-                        name="notify_transactions"
-                    />
-                }
-                label="Notify Transactions"
-            />
-            <FormControl fullWidth margin="normal">
-                <InputLabel>Language</InputLabel>
-                <Select
-                    name="language"
-                    value={settingsData.language}
-                    onChange={handleChange}
-                >
-                    <MenuItem value="en">English</MenuItem>
-                    <MenuItem value="es">Spanish</MenuItem>
-                </Select>
-            </FormControl>
-            <Button type="submit" variant="contained" color="primary">
-                Update Settings
-            </Button>
-        </form>
+        <div>
+            <h2>Account Settings</h2>
+            <p>Email: {email}</p>
+            <p>First Name: {first_name}</p>
+            <p>Last Name: {last_name}</p>
+            <div>
+                <label>
+                    Language:
+                    <select value={language} onChange={handleLanguageChange}>
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        {/* Add more languages as needed */}
+                    </select>
+                </label>
+            </div>
+            {/* Debug section to print userData */}
+            <div style={{ marginTop: '16px', padding: '16px', border: '1px solid #ccc' }}>
+                <h3>Debug: User Data</h3>
+                <pre>{JSON.stringify(userData, null, 2)}</pre>
+            </div>
+        </div>
     );
 };
 
